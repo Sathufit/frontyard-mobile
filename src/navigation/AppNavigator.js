@@ -4,10 +4,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text } from 'react-native';
 
-import { useAuth } from '../context/AuthContext';
 import { colors } from '../utils/constants';
-
-import LoginScreen from '../screens/LoginScreen';
 import HomeScreen from '../screens/HomeScreen';
 import WatchMatchScreen from '../screens/WatchMatchScreen';
 import AdminHomeScreen from '../screens/AdminHomeScreen';
@@ -89,16 +86,9 @@ function MainTabs() {
 }
 
 export default function AppNavigator() {
-  const { isAdmin, loading } = useAuth();
-
-  if (loading) return null;
-
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!isAdmin ? (
-          <Stack.Screen name="Login" component={LoginScreen} />
-        ) : null}
         <Stack.Screen name="Main" component={MainTabs} />
       </Stack.Navigator>
     </NavigationContainer>
