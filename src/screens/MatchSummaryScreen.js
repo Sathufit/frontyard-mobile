@@ -71,7 +71,7 @@ export default function MatchSummaryScreen({ route, navigation }) {
       <ScrollView contentContainerStyle={styles.content}>
         {/* Result Banner */}
         <View style={styles.resultBanner}>
-          <Text style={styles.trophy}>🏆</Text>
+          <Text style={styles.resultLabel}>Match Result</Text>
           <Text style={styles.resultText}>{match.result || 'Match Complete'}</Text>
           <Text style={styles.matchTitle}>{match.title}</Text>
         </View>
@@ -123,37 +123,37 @@ function InfoRow({ label, value }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   loading: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' },
-  content: { padding: 20, gap: 16 },
+  content: { padding: 20, gap: 16, paddingBottom: 40 },
   resultBanner: {
-    backgroundColor: 'rgba(200,255,58,0.08)',
-    borderRadius: 16, padding: 24, alignItems: 'center',
-    borderWidth: 1, borderColor: 'rgba(200,255,58,0.3)',
+    backgroundColor: colors.accentDim,
+    borderRadius: 20, paddingVertical: 32, paddingHorizontal: 24, alignItems: 'center',
+    borderWidth: 1, borderColor: colors.accentMed,
   },
-  trophy: { fontSize: 48, marginBottom: 8 },
-  resultText: { color: colors.accent, fontSize: 22, fontWeight: 'bold', textAlign: 'center' },
-  matchTitle: { color: colors.textSecondary, fontSize: 14, marginTop: 8, textAlign: 'center' },
+  resultLabel: { color: colors.accent, fontSize: 11, fontWeight: '700', letterSpacing: 2, marginBottom: 8, textTransform: 'uppercase' },
+  resultText: { color: colors.textPrimary, fontSize: 24, fontWeight: '800', textAlign: 'center', letterSpacing: -0.5, lineHeight: 30 },
+  matchTitle: { color: colors.textSecondary, fontSize: 14, marginTop: 10, textAlign: 'center' },
 
   inningsCard: {
-    backgroundColor: colors.surfaceElevated, borderRadius: 12,
+    backgroundColor: colors.surfaceElevated, borderRadius: 14,
     padding: 16, borderWidth: 1, borderColor: colors.border,
   },
-  cardTitle: { color: colors.accent, fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4 },
-  cardScore: { color: colors.textPrimary, fontSize: 26, fontWeight: 'bold', marginBottom: 12 },
-  subTitle: { color: colors.textSecondary, fontSize: 11, fontWeight: '700', letterSpacing: 0.3, marginBottom: 6, textTransform: 'uppercase' },
+  cardTitle: { color: colors.accent, fontSize: 11, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 4 },
+  cardScore: { color: colors.textPrimary, fontSize: 28, fontWeight: '800', letterSpacing: -0.8, marginBottom: 14 },
+  subTitle: { color: colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 0.5, marginBottom: 6, textTransform: 'uppercase' },
   tableHeader: { flexDirection: 'row', marginBottom: 4 },
-  tableRow: { flexDirection: 'row', paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: colors.surface },
+  tableRow: { flexDirection: 'row', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.border },
   th: { flex: 1, color: colors.textMuted, fontSize: 11, textAlign: 'center', fontWeight: '600' },
   thWide: { flex: 3, textAlign: 'left' },
   td: { flex: 1, color: colors.textSecondary, fontSize: 12, textAlign: 'center' },
 
-  infoCard: { backgroundColor: colors.surfaceElevated, borderRadius: 12, padding: 16, borderWidth: 1, borderColor: colors.border },
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: colors.surface },
+  infoCard: { backgroundColor: colors.surfaceElevated, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: colors.border },
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: colors.border },
   infoLabel: { color: colors.textMuted, fontSize: 13 },
   infoValue: { color: colors.textPrimary, fontSize: 13, fontWeight: '600', flex: 1, textAlign: 'right' },
-  playerItem: { color: colors.textSecondary, fontSize: 13, paddingVertical: 2 },
+  playerItem: { color: colors.textSecondary, fontSize: 13, paddingVertical: 3 },
 
   homeButton: {
-    backgroundColor: colors.surfaceElevated, borderRadius: 12, paddingVertical: 16,
+    backgroundColor: colors.surfaceElevated, borderRadius: 14, paddingVertical: 17,
     alignItems: 'center', borderWidth: 1, borderColor: colors.border,
   },
   homeButtonText: { color: colors.textPrimary, fontSize: 16, fontWeight: '600' },

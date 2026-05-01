@@ -3,6 +3,7 @@ import {
   doc,
   setDoc,
   updateDoc,
+  deleteDoc,
   onSnapshot,
   query,
   orderBy,
@@ -42,4 +43,8 @@ export async function updateMatch(matchId, data) {
     ...data,
     lastUpdated: serverTimestamp(),
   });
+}
+
+export async function deleteMatch(matchId) {
+  await deleteDoc(doc(db, 'matches', matchId));
 }

@@ -69,7 +69,7 @@ function DismissalModal({ visible, batterName, onConfirm, onClose }) {
 
 // ─── BallCircle ───────────────────────────────────────────────────────────────
 function BallCircle({ ball, small }) {
-  let bg = '#444';
+  let bg = '#BBBBC4';
   let label = ball.runs === 0 ? '•' : String(ball.runs);
   const size = small ? 28 : 34;
   if (ball.isOut) { bg = colors.error; label = 'W'; }
@@ -139,7 +139,8 @@ export default function ScoringScreen({ route, navigation }) {
   const state = computeMatchState(balls, teamSize);
   const { runs, wickets, currentOver, currentBall, runRate, isAllOut, wides, noBalls, byes, legByes } = state;
 
-  const isLastBatter = wickets >= teamSize - 2 && wickets < teamSize - 1;
+  // Last man is in when only one batter remains (no partner available)
+  const isLastManIn = wickets >= teamSize - 1 && !isAllOut;
   const currentOverBalls = balls.filter((b, i) => {
     // Count legal balls in current over
     let legal = 0;
@@ -198,6 +199,7 @@ export default function ScoringScreen({ route, navigation }) {
       const need = (match.target || 0) - newRuns;
       const ballsLeft = oversLimit ? oversLimit * 6 - totalLegal : null;
       if (need <= 0) {
+        // wickets remaining = total players - 1 (last man can bat) - wickets fallen
         const wLeft = (teamSize - 1) - newWickets;
         leadTrail = `${battingTeam} won by ${Math.max(0, wLeft)} wicket${wLeft !== 1 ? 's' : ''}`;
       } else if (ballsLeft !== null) {
@@ -207,11 +209,11 @@ export default function ScoringScreen({ route, navigation }) {
       }
     }
 
-    // Swap striker on odd runs (excluding wides)
+    // Swap striker on odd runs (excluding wides) — skip swap when last man bats alone
     let newStriker = striker;
     let newNonStriker = nonStriker;
     const isWide = ball.isExtra && ball.extraType === 'wide';
-    if (!isWide && !ball.isOut) {
+    if (!isWide && !ball.isOut && nonStriker) {
       const totalBatRuns = ball.runs;
       if (totalBatRuns % 2 === 1) {
         newStriker = nonStriker;
@@ -242,6 +244,10 @@ export default function ScoringScreen({ route, navigation }) {
 
   // ── Handle Ball Tap ─────────────────────────────────────────────────────────
   async function handleBall(runs, ballType, isExtra, extraType, extraRuns) {
+    if (match.matchFinished) {
+      Alert.alert('Match Over', 'The match has already finished. Use the End Match button to go to the summary.');
+      return;
+    }
     if (!striker || !bowler) {
       Alert.alert('Setup Required', 'Select striker and bowler first.');
       return;
@@ -285,6 +291,10 @@ export default function ScoringScreen({ route, navigation }) {
 
   // ── Handle Wicket ──────────────────────────────────────────────────────────
   function handleWicketTap() {
+    if (match.matchFinished) {
+      Alert.alert('Match Over', 'The match has already finished. Use the End Match button to go to the summary.');
+      return;
+    }
     if (!striker || !bowler) {
       Alert.alert('Setup Required', 'Select striker and bowler first.');
       return;
@@ -313,18 +323,26 @@ export default function ScoringScreen({ route, navigation }) {
     const ended = await checkInningsOrMatchEnd(newState, newBalls, newRuns, newWickets, newOver, newBall, result.leadTrail);
     if (ended) return;
 
-    // Check if innings still alive — prompt for new batter
+    const newIsLastManIn = newWickets >= teamSize - 1 && !newState.isAllOut;
+
     if (!newState.isAllOut) {
-      setTimeout(() => {
-        setNewBatterPickerVisible(true);
-      }, 300);
+      if (newIsLastManIn) {
+        // Striker just got out — non-striker is now last man, bats alone
+        const lastMan = nonStriker ?? striker;
+        setStriker(lastMan);
+        setNonStriker(null);
+        updateMatch(matchId, { currentBatters: [lastMan, null] });
+      } else {
+        setTimeout(() => {
+          setNewBatterPickerVisible(true);
+        }, 300);
+      }
 
       // Over end check
       const newLegal = newOver * 6 + newBall;
       const prevLegal = currentOver * 6 + currentBall;
       if (newBall === 0 && newLegal > 0 && newLegal > prevLegal) {
         setPreviousBowler(bowler);
-        // Will show bowler picker after batter selected
       }
     }
   }
@@ -338,7 +356,15 @@ export default function ScoringScreen({ route, navigation }) {
   function handleNewBowlerSelect(name) {
     setNewBowlerPickerVisible(false);
     setBowler(name);
-    // Swap striker/non-striker at end of over
+    // When last man is batting alone, no swap — he stays striker
+    if (!nonStriker) {
+      updateMatch(matchId, {
+        currentBowler: name,
+        currentBatters: [striker, null],
+      });
+      return;
+    }
+    // Normal over end: swap striker/non-striker
     const tmp = striker;
     setStriker(nonStriker);
     setNonStriker(tmp);
@@ -352,8 +378,10 @@ export default function ScoringScreen({ route, navigation }) {
   async function checkInningsOrMatchEnd(newState, newBalls, newRuns, newWickets, newOver, newBall, leadTrail) {
     const oversComplete = oversLimit && newOver >= oversLimit && newBall === 0;
     const allOut = newState.isAllOut;
+    // Target reached mid-over in 2nd innings — chasing team wins immediately
+    const targetReached = currentInnings > 1 && match.target && newRuns >= match.target;
 
-    if (!oversComplete && !allOut) return false;
+    if (!oversComplete && !allOut && !targetReached) return false;
 
     // Innings has ended
     const inningsData = {
@@ -398,7 +426,7 @@ export default function ScoringScreen({ route, navigation }) {
     }
 
     // 2nd innings (limited overs) — match ends
-    const team1Runs = match.innings1?.runs || match.target - 1;
+    const team1Runs = match.innings1?.runs ?? (match.target ? match.target - 1 : 0);
     let result;
     if (newRuns > team1Runs) {
       const wLeft = (teamSize - 1) - newWickets;
@@ -425,6 +453,10 @@ export default function ScoringScreen({ route, navigation }) {
 
   // ── Undo Last Ball ──────────────────────────────────────────────────────────
   async function handleUndo() {
+    if (match.matchFinished) {
+      Alert.alert('Match Over', 'Cannot undo after the match has finished.');
+      return;
+    }
     if (balls.length === 0) return;
     Alert.alert('Undo Last Ball', 'Remove the last ball?', [
       { text: 'Cancel', style: 'cancel' },
@@ -554,7 +586,7 @@ export default function ScoringScreen({ route, navigation }) {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
       <SafeAreaView style={{ flex: 1 }}>
         {/* Header */}
         <View style={styles.header}>
@@ -610,7 +642,7 @@ export default function ScoringScreen({ route, navigation }) {
             </TouchableOpacity>
 
             {/* Non-Striker (hidden when last batter) */}
-            {!isAllOut && (
+            {!isAllOut && !isLastManIn && (
               <TouchableOpacity
                 style={styles.playerRow}
                 onPress={() => setNonStrikerPickerVisible(true)}
@@ -638,8 +670,8 @@ export default function ScoringScreen({ route, navigation }) {
               style={[styles.playerRow, { borderTopWidth: 1, borderTopColor: colors.border }]}
               onPress={() => setBowlerPickerVisible(true)}
             >
-              <View style={[styles.strikerBadge, { backgroundColor: 'rgba(255,193,7,0.15)' }]}>
-                <Text style={{ color: colors.warning, fontWeight: 'bold', fontSize: 12 }}>B</Text>
+              <View style={[styles.strikerBadge, { backgroundColor: colors.warningDim }]}>
+                <Text style={{ color: colors.warning, fontWeight: '700', fontSize: 12 }}>B</Text>
               </View>
               {bowler ? (
                 <View style={{ flex: 1 }}>
@@ -665,10 +697,10 @@ export default function ScoringScreen({ route, navigation }) {
                 </TouchableOpacity>
               ))}
               <TouchableOpacity style={[styles.ballBtn, styles.ballBtnGreen]} onPress={() => handleBall(4, 'four', false, '', 0)}>
-                <Text style={[styles.ballBtnText, { color: colors.background }]}>4★</Text>
+                <Text style={[styles.ballBtnText, styles.ballBtnGreenText]}>4</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.ballBtn, styles.ballBtnYellow]} onPress={() => handleBall(6, 'six', false, '', 0)}>
-                <Text style={[styles.ballBtnText, { color: colors.background }]}>6★</Text>
+                <Text style={[styles.ballBtnText, styles.ballBtnYellowText]}>6</Text>
               </TouchableOpacity>
             </View>
 
@@ -686,7 +718,7 @@ export default function ScoringScreen({ route, navigation }) {
                 <Text style={styles.ballBtnExtraText}>LEG BYE</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.ballBtnWide, styles.ballBtnWicket]} onPress={handleWicketTap}>
-                <Text style={styles.ballBtnWicketText}>WICKET 🔴</Text>
+                <Text style={styles.ballBtnWicketText}>WICKET</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -773,72 +805,75 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 12,
+    paddingHorizontal: 16, paddingVertical: 13,
     borderBottomWidth: 1, borderBottomColor: colors.border,
+    backgroundColor: colors.surfaceElevated,
   },
   headerTitle: { color: colors.textPrimary, fontSize: 15, fontWeight: '600', flex: 1, marginRight: 8 },
   headerActions: { flexDirection: 'row', gap: 8 },
-  endBtn: { backgroundColor: colors.error, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8 },
-  endBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
-  declareBtn: { backgroundColor: colors.warning, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8 },
-  declareBtnText: { color: colors.background, fontWeight: 'bold', fontSize: 13 },
+  endBtn: { backgroundColor: colors.errorDim, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,59,48,0.3)' },
+  endBtnText: { color: colors.error, fontWeight: '700', fontSize: 13 },
+  declareBtn: { backgroundColor: colors.warningDim, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,214,10,0.3)' },
+  declareBtnText: { color: colors.warning, fontWeight: '700', fontSize: 13 },
 
   scorePanel: {
     backgroundColor: colors.surfaceElevated,
-    padding: 20, alignItems: 'center',
+    paddingVertical: 22, paddingHorizontal: 20, alignItems: 'center',
     borderBottomWidth: 1, borderBottomColor: colors.border,
   },
-  teamNameLabel: { color: colors.textSecondary, fontSize: 13, marginBottom: 4 },
-  scoreBig: { color: colors.textPrimary, fontSize: 48, fontWeight: 'bold', letterSpacing: -1 },
-  oversText: { color: colors.textSecondary, fontSize: 15, marginTop: 2 },
-  rateRow: { flexDirection: 'row', marginTop: 6 },
+  teamNameLabel: { color: colors.textMuted, fontSize: 12, letterSpacing: 0.5, marginBottom: 4, textTransform: 'uppercase', fontWeight: '600' },
+  scoreBig: { color: colors.textPrimary, fontSize: 52, fontWeight: '800', letterSpacing: -2 },
+  oversText: { color: colors.textSecondary, fontSize: 14, marginTop: 4 },
+  rateRow: { flexDirection: 'row', gap: 16, marginTop: 6 },
   rateText: { color: colors.textSecondary, fontSize: 13 },
-  leadTrail: { color: colors.accent, fontSize: 13, marginTop: 6, textAlign: 'center' },
-  inningsLabel: { color: colors.textMuted, fontSize: 11, marginTop: 4 },
+  leadTrail: { color: colors.accent, fontSize: 13, marginTop: 8, textAlign: 'center', fontWeight: '500' },
+  inningsLabel: { color: colors.textMuted, fontSize: 11, marginTop: 4, letterSpacing: 0.3 },
 
   playersPanel: {
     backgroundColor: colors.surface,
-    marginHorizontal: 0,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  playerRow: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
+  playerRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 12 },
   strikerBadge: {
-    width: 28, height: 28, borderRadius: 14,
-    backgroundColor: 'rgba(200,255,58,0.15)',
+    width: 30, height: 30, borderRadius: 15,
+    backgroundColor: colors.accentDim,
+    borderWidth: 1.5, borderColor: colors.accentMed,
     alignItems: 'center', justifyContent: 'center',
   },
-  strikerStar: { color: colors.accent, fontWeight: 'bold', fontSize: 14 },
-  nonStrikerDot: { color: colors.textMuted, fontSize: 16 },
+  strikerStar: { color: colors.accent, fontWeight: '800', fontSize: 14 },
+  nonStrikerDot: { color: colors.textMuted, fontSize: 14, width: 30, textAlign: 'center' },
   playerName: { color: colors.textPrimary, fontSize: 15, fontWeight: '600' },
   playerStats: { color: colors.textMuted, fontSize: 12, marginTop: 1 },
   selectPlayerText: { color: colors.accent, fontSize: 14, flex: 1 },
 
-  ballInputSection: { padding: 16, gap: 10 },
-  ballRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  ballInputSection: { padding: 14, gap: 10 },
+  ballRow: { flexDirection: 'row', gap: 7, flexWrap: 'wrap' },
   ballBtn: {
     flex: 1, minWidth: 48, paddingVertical: 16, alignItems: 'center', justifyContent: 'center',
     backgroundColor: colors.surfaceElevated,
-    borderRadius: 10, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 12, borderWidth: 1, borderColor: colors.border,
   },
-  ballBtnText: { color: colors.textPrimary, fontWeight: 'bold', fontSize: 16 },
-  ballBtnGreen: { backgroundColor: colors.success, borderColor: colors.success },
-  ballBtnYellow: { backgroundColor: colors.warning, borderColor: colors.warning },
+  ballBtnText: { color: colors.textPrimary, fontWeight: '700', fontSize: 17 },
+  ballBtnGreen: { backgroundColor: colors.successDim, borderColor: 'rgba(48,209,88,0.3)' },
+  ballBtnGreenText: { color: colors.success },
+  ballBtnYellow: { backgroundColor: colors.warningDim, borderColor: 'rgba(255,214,10,0.3)' },
+  ballBtnYellowText: { color: colors.warning },
   ballBtnWide: {
-    flex: 1, minWidth: 60, paddingVertical: 14, alignItems: 'center', justifyContent: 'center',
-    borderRadius: 10, borderWidth: 1,
+    flex: 1, minWidth: 60, paddingVertical: 13, alignItems: 'center', justifyContent: 'center',
+    borderRadius: 12, borderWidth: 1,
   },
-  ballBtnExtra: { backgroundColor: 'rgba(255,152,0,0.15)', borderColor: '#FF9800' },
-  ballBtnExtraText: { color: '#FF9800', fontWeight: '700', fontSize: 11 },
-  ballBtnWicket: { backgroundColor: 'rgba(255,82,82,0.15)', borderColor: colors.error },
-  ballBtnWicketText: { color: colors.error, fontWeight: '700', fontSize: 11 },
+  ballBtnExtra: { backgroundColor: colors.orangeDim, borderColor: 'rgba(255,159,10,0.3)' },
+  ballBtnExtraText: { color: colors.orange, fontWeight: '700', fontSize: 12 },
+  ballBtnWicket: { backgroundColor: colors.errorDim, borderColor: 'rgba(255,59,48,0.3)' },
+  ballBtnWicketText: { color: colors.error, fontWeight: '700', fontSize: 12 },
 
   lastOverSection: { paddingHorizontal: 16, paddingVertical: 10 },
-  lastOverLabel: { color: colors.textMuted, fontSize: 11, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
+  lastOverLabel: { color: colors.textMuted, fontSize: 10, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: '700' },
   lastOverBalls: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
-  noOverText: { color: colors.textMuted },
+  noOverText: { color: colors.textMuted, fontSize: 13 },
   ballCircle: { alignItems: 'center', justifyContent: 'center' },
-  ballCircleText: { color: '#fff', fontWeight: 'bold' },
+  ballCircleText: { color: '#fff', fontWeight: '700' },
 
   extrasRow: {
     flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 12,
@@ -847,24 +882,25 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   extraItem: { flex: 1, alignItems: 'center' },
-  extraLabel: { color: colors.textMuted, fontSize: 10, textTransform: 'uppercase' },
-  extraVal: { color: colors.textPrimary, fontWeight: 'bold', fontSize: 16, marginTop: 2 },
+  extraLabel: { color: colors.textMuted, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: '600' },
+  extraVal: { color: colors.textPrimary, fontWeight: '700', fontSize: 17, marginTop: 3 },
 
   undoBtn: {
-    marginHorizontal: 16, marginTop: 12,
-    paddingVertical: 14, alignItems: 'center',
-    backgroundColor: colors.surface, borderRadius: 10,
+    marginHorizontal: 14, marginTop: 10, marginBottom: 4,
+    paddingVertical: 13, alignItems: 'center',
+    backgroundColor: colors.surface, borderRadius: 12,
     borderWidth: 1, borderColor: colors.border,
   },
   undoBtnText: { color: colors.warning, fontWeight: '600', fontSize: 14 },
 
   // Modal styles
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' },
   modalSheet: {
-    backgroundColor: '#1A1A1A', borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    padding: 20, maxHeight: '80%',
+    backgroundColor: colors.surfaceElevated, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    padding: 24, maxHeight: '80%',
+    borderTopWidth: 1, borderTopColor: colors.borderStrong,
   },
-  modalTitle: { color: colors.textPrimary, fontSize: 17, fontWeight: 'bold', marginBottom: 16, textAlign: 'center' },
+  modalTitle: { color: colors.textPrimary, fontSize: 17, fontWeight: '700', marginBottom: 18, textAlign: 'center' },
   modalOption: { paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
   modalOptionText: { color: colors.textPrimary, fontSize: 16, textAlign: 'center' },
   modalCancel: { marginTop: 12, paddingVertical: 14, alignItems: 'center' },
@@ -872,13 +908,13 @@ const styles = StyleSheet.create({
 
   dismissalGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
   dismissalBtn: {
-    paddingHorizontal: 16, paddingVertical: 10,
-    borderRadius: 8, borderWidth: 1, borderColor: colors.border,
-    backgroundColor: colors.surfaceElevated,
+    paddingHorizontal: 16, paddingVertical: 11,
+    borderRadius: 10, borderWidth: 1, borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
-  dismissalBtnActive: { backgroundColor: colors.error, borderColor: colors.error },
+  dismissalBtnActive: { backgroundColor: colors.errorDim, borderColor: 'rgba(255,59,48,0.4)' },
   dismissalText: { color: colors.textSecondary, fontWeight: '600', fontSize: 14 },
-  dismissalTextActive: { color: '#fff' },
-  confirmBtn: { backgroundColor: colors.error, borderRadius: 10, paddingVertical: 15, alignItems: 'center', marginBottom: 4 },
-  confirmBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  dismissalTextActive: { color: colors.error },
+  confirmBtn: { backgroundColor: colors.error, borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginBottom: 4 },
+  confirmBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
 });

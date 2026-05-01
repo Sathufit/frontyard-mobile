@@ -180,14 +180,14 @@ export default function InningsBreakScreen({ route, navigation }) {
                 onPress={() => startNextInnings(true)}
                 disabled={loading}
               >
-                <Text style={[styles.actionBtnText, { color: colors.background }]}>Enforce Follow-on</Text>
+                <Text style={[styles.actionBtnText, { color: '#FFFFFF' }]}>Enforce Follow-on</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.actionBtn}
                 onPress={() => startNextInnings(false)}
                 disabled={loading}
               >
-                {loading ? <ActivityIndicator color={colors.background} /> : <Text style={styles.actionBtnText}>Continue Normally</Text>}
+                {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.actionBtnText}>Continue Normally</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -202,7 +202,7 @@ export default function InningsBreakScreen({ route, navigation }) {
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator color={colors.background} />
+                <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <Text style={styles.startButtonText}>
                   {matchType === 'TEST' ? `Start Innings ${inningsNumber + 1}` : 'Start 2nd Innings'}
@@ -224,39 +224,39 @@ export default function InningsBreakScreen({ route, navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 20, gap: 16 },
+  content: { padding: 20, gap: 16, paddingBottom: 40 },
   inningsHeader: {
     backgroundColor: colors.surfaceElevated,
-    borderRadius: 14, padding: 20, alignItems: 'center',
+    borderRadius: 16, padding: 24, alignItems: 'center',
     borderWidth: 1, borderColor: colors.border,
   },
-  inningsTeam: { color: colors.textSecondary, fontSize: 14, marginBottom: 4 },
-  inningsScore: { color: colors.textPrimary, fontSize: 40, fontWeight: 'bold' },
-  inningsOvers: { color: colors.textMuted, fontSize: 14, marginTop: 2 },
+  inningsTeam: { color: colors.textMuted, fontSize: 12, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 6 },
+  inningsScore: { color: colors.textPrimary, fontSize: 44, fontWeight: '800', letterSpacing: -1.5 },
+  inningsOvers: { color: colors.textSecondary, fontSize: 14, marginTop: 4 },
   targetBanner: {
-    backgroundColor: 'rgba(200,255,58,0.08)',
-    borderRadius: 14, padding: 20, alignItems: 'center',
-    borderWidth: 1, borderColor: 'rgba(200,255,58,0.3)',
+    backgroundColor: colors.accentDim,
+    borderRadius: 16, padding: 24, alignItems: 'center',
+    borderWidth: 1, borderColor: colors.accentMed,
   },
-  targetLabel: { color: colors.accent, fontSize: 12, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
-  targetNum: { color: colors.accent, fontSize: 52, fontWeight: 'bold', marginVertical: 4 },
+  targetLabel: { color: colors.accent, fontSize: 11, fontWeight: '700', letterSpacing: 1.5, textTransform: 'uppercase' },
+  targetNum: { color: colors.accent, fontSize: 56, fontWeight: '800', marginVertical: 4, letterSpacing: -2 },
   targetSub: { color: colors.textSecondary, fontSize: 14 },
-  section: { backgroundColor: colors.surfaceElevated, borderRadius: 12, padding: 16, borderWidth: 1, borderColor: colors.border },
-  sectionTitle: { color: colors.accent, fontSize: 13, fontWeight: '700', letterSpacing: 0.5, marginBottom: 12, textTransform: 'uppercase' },
-  subTitle: { color: colors.textSecondary, fontSize: 12, fontWeight: '700', marginBottom: 8, letterSpacing: 0.3 },
+  section: { backgroundColor: colors.surfaceElevated, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: colors.border },
+  sectionTitle: { color: colors.accent, fontSize: 11, fontWeight: '700', letterSpacing: 0.8, marginBottom: 12, textTransform: 'uppercase' },
+  subTitle: { color: colors.textSecondary, fontSize: 11, fontWeight: '700', marginBottom: 8, letterSpacing: 0.3, textTransform: 'uppercase' },
   tableHeader: { flexDirection: 'row', marginBottom: 4 },
-  tableRow: { flexDirection: 'row', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.surface },
+  tableRow: { flexDirection: 'row', paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: colors.border },
   th: { flex: 1, color: colors.textMuted, fontSize: 11, textAlign: 'center', fontWeight: '600' },
   thWide: { flex: 3, textAlign: 'left' },
   td: { flex: 1, color: colors.textSecondary, fontSize: 13, textAlign: 'center' },
-  followOnBox: { backgroundColor: 'rgba(255,193,7,0.08)', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: 'rgba(255,193,7,0.3)' },
-  followOnTitle: { color: colors.warning, fontSize: 17, fontWeight: 'bold', textAlign: 'center', marginBottom: 4 },
+  followOnBox: { backgroundColor: colors.warningDim, borderRadius: 14, padding: 18, borderWidth: 1, borderColor: 'rgba(255,214,10,0.25)' },
+  followOnTitle: { color: colors.warning, fontSize: 17, fontWeight: '700', textAlign: 'center', marginBottom: 4 },
   followOnSub: { color: colors.textSecondary, fontSize: 13, textAlign: 'center', marginBottom: 16 },
   followOnBtns: { gap: 10 },
-  actionBtn: { backgroundColor: colors.accent, borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
-  actionBtnText: { color: colors.background, fontWeight: 'bold', fontSize: 15 },
-  startButton: { backgroundColor: colors.accent, borderRadius: 12, paddingVertical: 18, alignItems: 'center' },
-  startButtonText: { color: colors.background, fontWeight: 'bold', fontSize: 17 },
-  drawButton: { borderRadius: 12, paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
+  actionBtn: { backgroundColor: colors.accent, borderRadius: 12, paddingVertical: 15, alignItems: 'center' },
+  actionBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 15 },
+  startButton: { backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 18, alignItems: 'center' },
+  startButtonText: { color: '#FFFFFF', fontWeight: '700', fontSize: 17 },
+  drawButton: { borderRadius: 14, paddingVertical: 15, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
   drawButtonText: { color: colors.textMuted, fontSize: 15 },
 });

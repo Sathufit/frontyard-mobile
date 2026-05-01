@@ -1,16 +1,33 @@
 export const colors = {
-  background: '#0C0C0C',
-  surface: 'rgba(255,255,255,0.03)',
-  surfaceElevated: 'rgba(255,255,255,0.06)',
-  border: 'rgba(255,255,255,0.1)',
-  accent: '#C8FF3A',
-  accentDark: '#B4FF00',
-  textPrimary: '#F2F2F2',
-  textSecondary: '#999999',
-  textMuted: '#666666',
-  error: '#FF5252',
-  warning: '#FFC107',
-  success: '#4CAF50',
+  // Backgrounds — clean light theme
+  background: '#F2F2F7',
+  surface: '#FFFFFF',
+  surfaceElevated: '#FFFFFF',
+
+  // Borders
+  border: 'rgba(0,0,0,0.08)',
+  borderStrong: 'rgba(0,0,0,0.14)',
+
+  // Brand accent — signature green
+  accent: '#1A7A3C',
+  accentDark: '#145E2D',
+  accentDim: 'rgba(26,122,60,0.08)',
+  accentMed: 'rgba(26,122,60,0.16)',
+
+  // Text hierarchy
+  textPrimary: '#0A0A0A',
+  textSecondary: '#5A5A6A',
+  textMuted: '#9A9AAA',
+
+  // Semantic colors
+  error: '#D93025',
+  errorDim: 'rgba(217,48,37,0.08)',
+  warning: '#C27C00',
+  warningDim: 'rgba(194,124,0,0.08)',
+  success: '#1A7A3C',
+  successDim: 'rgba(26,122,60,0.08)',
+  orange: '#C45200',
+  orangeDim: 'rgba(196,82,0,0.08)',
 };
 
 export const PLAYERS = [
