@@ -244,14 +244,11 @@ export default function ScoringScreen({ route, navigation }) {
       }
     }
 
-    // Swap striker on odd runs (excluding wides) — skip swap when last man bats alone
+    // Swap striker on odd runs (excluding wides)
     let newStriker = striker;
     let newNonStriker = nonStriker;
     const isWide = ball.isExtra && ball.extraType === 'wide';
-    // Last man stands: when only 1 wicket remains, the last man (striker) faces every ball —
-    // no rotation on odd runs and no over-end swap.
-    const isLastManPartnership = newWickets >= teamSize - 2;
-    if (!isWide && !ball.isOut && nonStriker && !isLastManPartnership) {
+    if (!isWide && !ball.isOut && nonStriker) {
       const totalBatRuns = ball.runs;
       if (totalBatRuns % 2 === 1) {
         newStriker = nonStriker;
@@ -362,18 +359,25 @@ export default function ScoringScreen({ route, navigation }) {
     const ended = await checkInningsOrMatchEnd(newState, newBalls, newRuns, newWickets, newOver, newBall, result.leadTrail);
     if (ended) return;
 
-    // Show new batter picker (innings hasn't ended, partner needed)
     if (!newState.isAllOut) {
-      setTimeout(() => {
-        setNewBatterPickerVisible(true);
-      }, 300);
+      const overEnded = newBall === 0 && (newOver * 6) > (currentOver * 6 + currentBall);
 
-      // Over end check — clear bowler so new one must be selected
-      const newLegal = newOver * 6 + newBall;
-      const prevLegal = currentOver * 6 + currentBall;
-      if (newBall === 0 && newLegal > 0 && newLegal > prevLegal) {
-        setBowler(null);
-        setPreviousBowler(bowler);
+      if (newWickets >= teamSize - 1) {
+        // Last man plays alone — no new batter, clear non-striker
+        setNonStriker(null);
+        updateMatch(matchId, { currentBatters: [result.newStriker, null] });
+        if (overEnded) {
+          setBowler(null);
+          setPreviousBowler(bowler);
+          setTimeout(() => setNewBowlerPickerVisible(true), 200);
+        }
+      } else {
+        // Normal: bring in a new batter
+        setTimeout(() => setNewBatterPickerVisible(true), 300);
+        if (overEnded) {
+          setBowler(null);
+          setPreviousBowler(bowler);
+        }
       }
     }
   }
@@ -387,14 +391,11 @@ export default function ScoringScreen({ route, navigation }) {
   function handleNewBowlerSelect(name) {
     setNewBowlerPickerVisible(false);
     setBowler(name);
-    // Last man stands: when 1 wicket remains (or no non-striker), don't rotate ends —
-    // the last man stays at the striker end to face all deliveries.
-    const isLastManPartnership = wickets >= teamSize - 2;
-    if (isLastManPartnership || !nonStriker) {
-      // No swap — last man keeps facing the ball
+    // Last man plays alone (no non-striker) — don't swap ends
+    if (!nonStriker) {
       updateMatch(matchId, {
         currentBowler: name,
-        currentBatters: [striker, nonStriker],
+        currentBatters: [striker, null],
       });
     } else {
       // Normal over end: swap striker/non-striker

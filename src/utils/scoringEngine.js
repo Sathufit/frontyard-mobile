@@ -99,8 +99,8 @@ export function computeMatchState(balls, battingTeamSize) {
     b.economy = b.balls > 0 ? ((b.runs / b.balls) * 6).toFixed(2) : '0.00';
   });
 
-  // Innings ends when teamSize-1 wickets fall (standard cricket: 10 wickets for 11 players)
-  const isAllOut = battingTeamSize > 0 ? wickets >= battingTeamSize - 1 : false;
+  // Innings ends when all players are dismissed (last man plays alone until out)
+  const isAllOut = battingTeamSize > 0 ? wickets >= battingTeamSize : false;
 
   return {
     runs,
