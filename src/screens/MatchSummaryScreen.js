@@ -100,7 +100,7 @@ export default function MatchSummaryScreen({ route, navigation }) {
 
         <TouchableOpacity
           style={styles.homeButton}
-          onPress={() => navigation.navigate('AdminHome')}
+          onPress={() => navigation.navigate('Admin', { screen: 'AdminHome' })}
         >
           <Text style={styles.homeButtonText}>Back to Admin Home</Text>
         </TouchableOpacity>

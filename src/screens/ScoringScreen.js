@@ -165,11 +165,13 @@ export default function ScoringScreen({ route, navigation }) {
     }
   }
 
-  // Required rate (2nd innings chasing)
+  // Required rate — only relevant in the final chasing innings
+  // TEST: final innings is 4; LIMITED_OVERS: final innings is 2
+  const isChasingInnings = currentInnings > 1 && (matchType !== 'TEST' || currentInnings === 4);
   const legalBallsTotal = currentOver * 6 + currentBall;
   const ballsRemaining = oversLimit ? oversLimit * 6 - legalBallsTotal : null;
-  const runsNeeded = (match.target || 0) - runs;
-  const requiredRate = (ballsRemaining && ballsRemaining > 0 && currentInnings > 1)
+  const runsNeeded = isChasingInnings ? (match.target || 0) - runs : 0;
+  const requiredRate = (ballsRemaining && ballsRemaining > 0 && isChasingInnings && match.target)
     ? ((runsNeeded / ballsRemaining) * 6).toFixed(2)
     : null;
 
@@ -193,10 +195,11 @@ export default function ScoringScreen({ route, navigation }) {
     const totalLegal = newOver * 6 + newBall;
     const rr = totalLegal > 0 ? ((newRuns / totalLegal) * 6).toFixed(2) : '0.00';
 
-    // Compute lead/trail
+    // Compute lead/trail — only show chasing info in the final innings
+    const isFinalInningsNow = currentInnings > 1 && (matchType !== 'TEST' || currentInnings === 4);
     let leadTrail = `${battingTeam} batting`;
-    if (currentInnings > 1) {
-      const need = (match.target || 0) - newRuns;
+    if (isFinalInningsNow && match.target) {
+      const need = match.target - newRuns;
       const ballsLeft = oversLimit ? oversLimit * 6 - totalLegal : null;
       if (need <= 0) {
         // wickets remaining = total players - 1 (last man can bat) - wickets fallen
@@ -378,8 +381,9 @@ export default function ScoringScreen({ route, navigation }) {
   async function checkInningsOrMatchEnd(newState, newBalls, newRuns, newWickets, newOver, newBall, leadTrail) {
     const oversComplete = oversLimit && newOver >= oversLimit && newBall === 0;
     const allOut = newState.isAllOut;
-    // Target reached mid-over in 2nd innings — chasing team wins immediately
-    const targetReached = currentInnings > 1 && match.target && newRuns >= match.target;
+    // Target reached — only in the final chasing innings (TEST: innings 4, LIMITED: innings 2)
+    const isFinalChasing = currentInnings > 1 && (matchType !== 'TEST' || currentInnings === 4);
+    const targetReached = isFinalChasing && match.target && newRuns >= match.target;
 
     if (!oversComplete && !allOut && !targetReached) return false;
 
@@ -611,7 +615,7 @@ export default function ScoringScreen({ route, navigation }) {
             <Text style={styles.oversText}>({currentOver}.{currentBall} ov)</Text>
             <View style={styles.rateRow}>
               <Text style={styles.rateText}>Rate: {runRate}</Text>
-              {requiredRate && currentInnings > 1 && (
+              {requiredRate && isChasingInnings && (
                 <Text style={[styles.rateText, { color: colors.warning }]}>  Req: {requiredRate}</Text>
               )}
             </View>

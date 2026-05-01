@@ -56,7 +56,13 @@ export default function InningsBreakScreen({ route, navigation }) {
 
   const [loading, setLoading] = useState(false);
 
-  const target = (innings1Runs || 0) + 1;
+  // Target calculation:
+  //  After innings 1: team2 chases innings1Runs + 1
+  //  After innings 3: team4 chases (innings1Runs + innings3Runs) - innings2Runs + 1
+  const innings3Runs = inningsNumber === 3 ? inningsData.runs : 0;
+  const target = inningsNumber === 3
+    ? (innings1Runs || 0) + innings3Runs - (innings2Runs || 0) + 1
+    : (innings1Runs || 0) + 1;
   const battingTeam = inningsData.team;
   const bowlingTeam = battingTeam === teamA ? teamB : teamA;
   const nextBattingTeam = bowlingTeam; // for 2nd innings
@@ -88,11 +94,19 @@ export default function InningsBreakScreen({ route, navigation }) {
       }
 
       const inningsKey = `innings${inningsNumber}`;
-      const newTarget = inningsNumber === 1 ? innings1Runs + 1 : 0;
+      // Target to set in Firestore:
+      //  innings 1 end → innings 2 chases innings1+1
+      //  innings 2 end → reset to 0 (no chasing in innings 3)
+      //  innings 3 end → innings 4 chases (inn1+inn3) - inn2 + 1
+      const newTarget = inningsNumber === 1
+        ? (innings1Runs || 0) + 1
+        : inningsNumber === 3
+          ? (innings1Runs || 0) + inningsData.runs - (innings2Runs || 0) + 1
+          : 0; // innings 2→3: no target
 
       await updateMatch(matchId, {
         [inningsKey]: inningsData,
-        ...(inningsNumber === 1 ? { target: newTarget } : {}),
+        target: newTarget,  // always update: set correct target or reset to 0
         currentInnings: nextInnings,
         currentOver: 0,
         currentBall: 0,
@@ -107,7 +121,9 @@ export default function InningsBreakScreen({ route, navigation }) {
         battingCardTitle: `${nextBatting} - Batting`,
         bowlingCardTitle: `${nextBowling} - Bowling`,
         matchStatus: 'In Progress',
-        leadTrail: inningsNumber === 1 ? `${nextBatting} need ${newTarget} runs` : `${nextBatting} batting`,
+        leadTrail: (inningsNumber === 1 || inningsNumber === 3)
+          ? `${nextBatting} need ${newTarget} runs to win`
+          : `${nextBatting} batting`,
       });
 
       navigation.replace('Scoring', {
@@ -151,8 +167,8 @@ export default function InningsBreakScreen({ route, navigation }) {
           <Text style={styles.inningsOvers}>({inningsData.overs} ov){declared ? ' — Declared' : ''}</Text>
         </View>
 
-        {/* Target banner (after innings 1) */}
-        {inningsNumber === 1 && (
+        {/* Target banner — after innings 1 (for innings 2) or after innings 3 (for innings 4) */}
+        {(inningsNumber === 1 || inningsNumber === 3) && (
           <View style={styles.targetBanner}>
             <Text style={styles.targetLabel}>Target</Text>
             <Text style={styles.targetNum}>{target}</Text>

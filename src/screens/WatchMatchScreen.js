@@ -91,6 +91,25 @@ export default function WatchMatchScreen({ route, navigation }) {
   }
 
   const last12 = (match.balls || []).slice(-12);
+  const isLive = !match.matchFinished && match.status !== 'finished';
+
+  function handleResumeScoring() {
+    navigation.navigate('NewMatch', {
+      screen: 'Scoring',
+      params: {
+        matchId: match.id,
+        matchName: match.title,
+        matchType: match.matchType,
+        oversLimit: match.oversLimit,
+        teamA: match.teamA,
+        teamB: match.teamB,
+        teamAPlayers: match.teamAPlayers || [],
+        teamBPlayers: match.teamBPlayers || [],
+        tossWinner: match.tossWinner || '',
+        tossDecision: match.tossDecision || 'bat',
+      },
+    });
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -101,6 +120,13 @@ export default function WatchMatchScreen({ route, navigation }) {
         <Text style={styles.scoreDetail}>{match.overs}  {match.runRate}</Text>
         {match.leadTrail ? <Text style={styles.leadTrail}>{match.leadTrail}</Text> : null}
       </View>
+
+      {/* Resume Scoring — shown when match is still live */}
+      {isLive && (
+        <TouchableOpacity style={styles.resumeBtn} onPress={handleResumeScoring} activeOpacity={0.8}>
+          <Text style={styles.resumeBtnText}>Resume Scoring</Text>
+        </TouchableOpacity>
+      )}
 
       {/* Tabs */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabBar}>
@@ -118,10 +144,47 @@ export default function WatchMatchScreen({ route, navigation }) {
       <ScrollView style={styles.content} contentContainerStyle={{ padding: 16 }}>
         {activeTab === 'Scorecard' && (
           <View>
-            <Text style={styles.sectionTitle}>Batting — {match.battingCardTitle?.replace(' - Batting', '')}</Text>
-            <BatterTable batterStats={match.batterStats || []} />
-            <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Bowling — {match.bowlingCardTitle?.replace(' - Bowling', '')}</Text>
-            <BowlerTable bowlerStats={match.bowlerStats || []} />
+            {/* For completed matches: show all archived innings */}
+            {[
+              { key: 'innings1', label: '1st Innings' },
+              { key: 'innings2', label: '2nd Innings' },
+              { key: 'innings3', label: '3rd Innings' },
+              { key: 'innings4', label: '4th Innings' },
+            ]
+              .filter(({ key }) => match[key])
+              .map(({ key, label }, i) => {
+                const inn = match[key];
+                return (
+                  <View key={key} style={i > 0 ? { marginTop: 24 } : undefined}>
+                    <Text style={styles.inningsLabel}>{label} — {inn.team}  <Text style={styles.inningsScore}>{inn.runs}/{inn.wickets} ({inn.overs} ov)</Text></Text>
+                    <Text style={[styles.sectionTitle, { marginTop: 12 }]}>Batting</Text>
+                    <BatterTable batterStats={inn.batterStats || []} />
+                    <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Bowling</Text>
+                    <BowlerTable bowlerStats={inn.bowlerStats || []} />
+                  </View>
+                );
+              })}
+
+            {/* Fallback for live in-progress (no archived innings yet) */}
+            {!match.innings1 && (
+              <View>
+                <Text style={styles.sectionTitle}>Batting — {match.battingCardTitle?.replace(' - Batting', '')}</Text>
+                <BatterTable batterStats={match.batterStats || []} />
+                <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Bowling — {match.bowlingCardTitle?.replace(' - Bowling', '')}</Text>
+                <BowlerTable bowlerStats={match.bowlerStats || []} />
+              </View>
+            )}
+
+            {/* Current live innings (when previous innings are already archived) */}
+            {match.innings1 && isLive && (
+              <View style={{ marginTop: 24 }}>
+                <Text style={styles.inningsLabel}>Current Innings — {match.battingCardTitle?.replace(' - Batting', '')}</Text>
+                <Text style={[styles.sectionTitle, { marginTop: 12 }]}>Batting</Text>
+                <BatterTable batterStats={match.batterStats || []} />
+                <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Bowling</Text>
+                <BowlerTable bowlerStats={match.bowlerStats || []} />
+              </View>
+            )}
           </View>
         )}
 
@@ -201,6 +264,8 @@ const styles = StyleSheet.create({
   tabTextActive: { color: colors.accent },
   content: { flex: 1 },
   sectionTitle: { color: colors.accent, fontSize: 11, fontWeight: '700', letterSpacing: 0.8, marginBottom: 12, textTransform: 'uppercase' },
+  inningsLabel: { color: colors.textPrimary, fontSize: 15, fontWeight: '700', marginBottom: 4 },
+  inningsScore: { color: colors.textSecondary, fontSize: 14, fontWeight: '600' },
   tableRow: { flexDirection: 'row', paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: colors.border },
   tableHeader: { borderBottomColor: colors.borderStrong },
   tableHeaderText: { color: colors.textMuted, fontWeight: '600', fontSize: 11 },
@@ -219,4 +284,9 @@ const styles = StyleSheet.create({
   infoLabel: { color: colors.textMuted, fontSize: 13 },
   infoValue: { color: colors.textPrimary, fontSize: 13, fontWeight: '600', flex: 1, textAlign: 'right' },
   playerItem: { color: colors.textSecondary, fontSize: 13, paddingVertical: 3 },
+  resumeBtn: {
+    marginHorizontal: 16, marginVertical: 10, backgroundColor: colors.accent,
+    borderRadius: 12, paddingVertical: 13, alignItems: 'center',
+  },
+  resumeBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 15 },
 });
