@@ -2,10 +2,11 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform, TouchableOpacity, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors } from '../utils/constants';
+import { useAuth } from '../context/AuthContext';
 import LandingScreen from '../screens/LandingScreen';
 import HomeScreen from '../screens/HomeScreen';
 import WatchMatchScreen from '../screens/WatchMatchScreen';
@@ -16,6 +17,7 @@ import ScoringScreen from '../screens/ScoringScreen';
 import InningsBreakScreen from '../screens/InningsBreakScreen';
 import MatchSummaryScreen from '../screens/MatchSummaryScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import LoginScreen from '../screens/LoginScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -46,6 +48,8 @@ const tabIconStyles = StyleSheet.create({
 });
 
 function NewMatchStackNavigator() {
+  const { isAdmin } = useAuth();
+  if (!isAdmin) return <LoginScreen isEmbedded />;
   return (
     <NewMatchStack.Navigator screenOptions={screenOptions}>
       <NewMatchStack.Screen name="CreateMatch" component={CreateMatchScreen} options={{ title: 'New Match' }} />

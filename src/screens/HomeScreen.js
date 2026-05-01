@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Swipeable } from 'react-native-gesture-handler';
 import { subscribeToMatches, deleteMatch } from '../services/matchService';
 import { colors } from '../utils/constants';
+import { useAuth } from '../context/AuthContext';
 
 function isFinished(m) {
   return (
@@ -132,6 +133,7 @@ export default function HomeScreen({ navigation }) {
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('LIVE');
+  const { isAdmin } = useAuth();
 
   useEffect(() => {
     const unsub = subscribeToMatches((data) => {
@@ -140,6 +142,14 @@ export default function HomeScreen({ navigation }) {
     });
     return unsub;
   }, []);
+
+  function onDelete(id) {
+    if (!isAdmin) {
+      Alert.alert('Login Required', 'You need to be logged in to delete matches.');
+      return;
+    }
+    handleDeleteMatch(id);
+  }
 
   const liveMatches = matches.filter((m) => !isFinished(m));
   const completedMatches = matches.filter((m) => isFinished(m));
@@ -188,7 +198,7 @@ export default function HomeScreen({ navigation }) {
               match={item}
               index={index}
               onPress={() => navigation.navigate('WatchMatch', { matchId: item.id, title: item.title })}
-              onDelete={handleDeleteMatch}
+              onDelete={onDelete}
             />
           )}
           contentContainerStyle={styles.list}

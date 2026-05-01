@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../utils/constants';
 
-export default function LoginScreen({ navigation }) {
+export default function LoginScreen({ navigation, isEmbedded = false }) {
   const { login } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -47,7 +47,10 @@ export default function LoginScreen({ navigation }) {
           {/* Wordmark */}
           <View style={styles.brand}>
             <Text style={styles.wordmark}>FRONTYARD</Text>
-            <Text style={styles.brandTitle}>Admin</Text>
+            <Text style={styles.brandTitle}>{isEmbedded ? 'Login Required' : 'Admin'}</Text>
+            {isEmbedded && (
+              <Text style={styles.embeddedSubtitle}>Sign in to start or manage matches</Text>
+            )}
           </View>
 
           {/* Form card */}
@@ -109,6 +112,12 @@ const styles = StyleSheet.create({
     fontSize: 40,
     fontWeight: '700',
     letterSpacing: -1,
+  },
+  embeddedSubtitle: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    marginTop: 6,
+    textAlign: 'center',
   },
   formCard: {
     backgroundColor: colors.surfaceElevated,

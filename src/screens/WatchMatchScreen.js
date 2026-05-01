@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Animated,
+  View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Animated, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { subscribeToMatch } from '../services/matchService';
 import { colors } from '../utils/constants';
+import { useAuth } from '../context/AuthContext';
 
 const TABS = ['Scorecard', 'Analytics', 'Bowling', 'Ball by Ball', 'Info'];
 
@@ -343,6 +344,7 @@ function BowlerTable({ bowlerStats }) {
 
 export default function WatchMatchScreen({ route, navigation }) {
   const { matchId, title } = route.params;
+  const { isAdmin } = useAuth();
   const [match, setMatch] = useState(null);
   const [activeTab, setActiveTab] = useState('Scorecard');
 
@@ -364,6 +366,10 @@ export default function WatchMatchScreen({ route, navigation }) {
   const isLive = !match.matchFinished && match.status !== 'finished';
 
   function handleResumeScoring() {
+    if (!isAdmin) {
+      Alert.alert('Login Required', 'You need to be logged in to resume scoring.');
+      return;
+    }
     navigation.navigate('NewMatch', {
       screen: 'Scoring',
       params: {
