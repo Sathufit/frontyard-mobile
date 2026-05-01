@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  ActivityIndicator, Animated,
+  ActivityIndicator, Animated, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { subscribeToMatches } from '../services/matchService';
+import { Swipeable } from 'react-native-gesture-handler';
+import { subscribeToMatches, deleteMatch } from '../services/matchService';
 import { colors } from '../utils/constants';
 
 function isFinished(m) {
@@ -34,10 +35,11 @@ function LiveDot() {
   );
 }
 
-function MatchCard({ match, onPress, index }) {
+function MatchCard({ match, onPress, onDelete, index }) {
   const finished = isFinished(match);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(16)).current;
+  const swipeRef = useRef(null);
 
   useEffect(() => {
     Animated.parallel([
@@ -46,7 +48,19 @@ function MatchCard({ match, onPress, index }) {
     ]).start();
   }, []);
 
-  return (
+  function confirmDelete() {
+    swipeRef.current?.close();
+    Alert.alert(
+      'Delete Match',
+      `Delete "${match.title}"? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => onDelete(match.id) },
+      ]
+    );
+  }
+
+  const card = (
     <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
       <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.75}>
         {/* Title row */}
@@ -86,6 +100,32 @@ function MatchCard({ match, onPress, index }) {
       </TouchableOpacity>
     </Animated.View>
   );
+
+  if (!finished) return card;
+
+  return (
+    <Swipeable
+      ref={swipeRef}
+      overshootRight={false}
+      rightThreshold={60}
+      renderRightActions={() => (
+        <TouchableOpacity style={styles.deleteAction} onPress={confirmDelete} activeOpacity={0.8}>
+          <Text style={styles.deleteActionIcon}>🗑</Text>
+          <Text style={styles.deleteActionLabel}>Delete</Text>
+        </TouchableOpacity>
+      )}
+    >
+      {card}
+    </Swipeable>
+  );
+}
+
+async function handleDeleteMatch(id) {
+  try {
+    await deleteMatch(id);
+  } catch (e) {
+    Alert.alert('Error', 'Could not delete match. Try again.');
+  }
 }
 
 export default function HomeScreen({ navigation }) {
@@ -148,6 +188,7 @@ export default function HomeScreen({ navigation }) {
               match={item}
               index={index}
               onPress={() => navigation.navigate('WatchMatch', { matchId: item.id, title: item.title })}
+              onDelete={handleDeleteMatch}
             />
           )}
           contentContainerStyle={styles.list}
@@ -208,4 +249,12 @@ const styles = StyleSheet.create({
   leadRow: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 8, marginTop: 2 },
   leadTrail: { color: colors.accent, fontSize: 13, fontWeight: '500' },
   leadTrailFinished: { color: colors.success },
+
+  deleteAction: {
+    width: 80, justifyContent: 'center', alignItems: 'center',
+    backgroundColor: colors.error, borderRadius: 16,
+    marginLeft: 8,
+  },
+  deleteActionIcon: { fontSize: 20 },
+  deleteActionLabel: { color: '#FFFFFF', fontSize: 11, fontWeight: '700', marginTop: 2 },
 });

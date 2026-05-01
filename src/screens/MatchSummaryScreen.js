@@ -99,6 +99,13 @@ export default function MatchSummaryScreen({ route, navigation }) {
         </View>
 
         <TouchableOpacity
+          style={styles.newMatchButton}
+          onPress={() => navigation.reset({ index: 0, routes: [{ name: 'CreateMatch' }] })}
+        >
+          <Text style={styles.newMatchButtonText}>Start New Match</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
           style={styles.homeButton}
           onPress={() => navigation.navigate('Admin', { screen: 'AdminHome' })}
         >
@@ -157,4 +164,9 @@ const styles = StyleSheet.create({
     alignItems: 'center', borderWidth: 1, borderColor: colors.border,
   },
   homeButtonText: { color: colors.textPrimary, fontSize: 16, fontWeight: '600' },
+  newMatchButton: {
+    backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 17,
+    alignItems: 'center',
+  },
+  newMatchButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
 });

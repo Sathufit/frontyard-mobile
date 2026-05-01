@@ -39,8 +39,8 @@ function TabIcon({ label, active }) {
 }
 
 const tabIconStyles = StyleSheet.create({
-  wrapper: { alignItems: 'center', justifyContent: 'center', paddingTop: 2, width: 80 },
-  label: { fontSize: 11, fontWeight: '600', color: colors.textMuted, letterSpacing: 0.1 },
+  wrapper: { alignItems: 'center', justifyContent: 'center', paddingTop: 2, width: 72 },
+  label: { fontSize: 10, fontWeight: '600', color: colors.textMuted, letterSpacing: 0.1 },
   labelActive: { color: colors.accent },
   indicator: { width: 4, height: 4, borderRadius: 2, backgroundColor: colors.accent, marginTop: 3 },
 });
@@ -71,9 +71,17 @@ function HomeStackNavigator() {
   return (
     <HomeStack.Navigator screenOptions={screenOptions}>
       <HomeStack.Screen name="Landing" component={LandingScreen} options={{ headerShown: false }} />
-      <HomeStack.Screen name="Matches" component={HomeScreen} options={{ title: 'Matches' }} />
-      <HomeStack.Screen name="WatchMatch" component={WatchMatchScreen} options={{ title: 'Live Match' }} />
     </HomeStack.Navigator>
+  );
+}
+
+const MatchesStack = createStackNavigator();
+function MatchesStackNavigator() {
+  return (
+    <MatchesStack.Navigator screenOptions={screenOptions}>
+      <MatchesStack.Screen name="MatchesList" component={HomeScreen} options={{ title: 'Matches' }} />
+      <MatchesStack.Screen name="WatchMatch" component={WatchMatchScreen} options={{ title: 'Live Match' }} />
+    </MatchesStack.Navigator>
   );
 }
 
@@ -102,6 +110,13 @@ function MainTabs() {
         component={HomeStackNavigator}
         options={{
           tabBarIcon: ({ focused }) => <TabIcon label="HOME" active={focused} />,
+        }}
+      />
+      <Tab.Screen
+        name="MatchesTab"
+        component={MatchesStackNavigator}
+        options={{
+          tabBarIcon: ({ focused }) => <TabIcon label="MATCHES" active={focused} />,
         }}
       />
       <Tab.Screen

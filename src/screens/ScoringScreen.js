@@ -139,8 +139,7 @@ export default function ScoringScreen({ route, navigation }) {
   const state = computeMatchState(balls, teamSize);
   const { runs, wickets, currentOver, currentBall, runRate, isAllOut, wides, noBalls, byes, legByes } = state;
 
-  // Last man is in when only one batter remains (no partner available)
-  const isLastManIn = wickets >= teamSize - 1 && !isAllOut;
+
   const currentOverBalls = balls.filter((b, i) => {
     // Count legal balls in current over
     let legal = 0;
@@ -195,20 +194,53 @@ export default function ScoringScreen({ route, navigation }) {
     const totalLegal = newOver * 6 + newBall;
     const rr = totalLegal > 0 ? ((newRuns / totalLegal) * 6).toFixed(2) : '0.00';
 
-    // Compute lead/trail — only show chasing info in the final innings
-    const isFinalInningsNow = currentInnings > 1 && (matchType !== 'TEST' || currentInnings === 4);
+    // Compute lead/trail
     let leadTrail = `${battingTeam} batting`;
-    if (isFinalInningsNow && match.target) {
-      const need = match.target - newRuns;
-      const ballsLeft = oversLimit ? oversLimit * 6 - totalLegal : null;
-      if (need <= 0) {
-        // wickets remaining = total players - 1 (last man can bat) - wickets fallen
-        const wLeft = (teamSize - 1) - newWickets;
-        leadTrail = `${battingTeam} won by ${Math.max(0, wLeft)} wicket${wLeft !== 1 ? 's' : ''}`;
-      } else if (ballsLeft !== null) {
-        leadTrail = `${battingTeam} need ${need} run${need !== 1 ? 's' : ''} off ${ballsLeft} ball${ballsLeft !== 1 ? 's' : ''}`;
-      } else {
-        leadTrail = `${battingTeam} need ${need} more run${need !== 1 ? 's' : ''}`;
+    if (matchType === 'TEST') {
+      if (currentInnings === 2) {
+        // Show lead or trail vs innings 1
+        const inn1 = match.innings1?.runs ?? 0;
+        const diff = newRuns - inn1;
+        if (diff > 0) leadTrail = `${battingTeam} lead by ${diff}`;
+        else if (diff < 0) leadTrail = `${battingTeam} trail by ${-diff}`;
+        else leadTrail = 'Match level';
+      } else if (currentInnings === 3) {
+        // Show aggregate position: (inn1 or inn2 depending on who batted first) vs opposition
+        const inn1 = match.innings1?.runs ?? 0;
+        const inn2 = match.innings2?.runs ?? 0;
+        const inn1Team = match.innings1?.team;
+        // If this team also batted inn1 → normal sequence: aggregate = inn1+inn3
+        // If follow-on → this team batted inn2 too: aggregate = inn2+inn3
+        const aggregate = battingTeam === inn1Team ? inn1 + newRuns : inn2 + newRuns;
+        const oppTotal  = battingTeam === inn1Team ? inn2 : inn1;
+        const diff = aggregate - oppTotal;
+        if (diff > 0) leadTrail = `${battingTeam} lead by ${diff}`;
+        else if (diff < 0) leadTrail = `${battingTeam} trail by ${-diff}`;
+        else leadTrail = 'Match level';
+      } else if (currentInnings === 4 && match.target) {
+        // Final chasing innings
+        const need = match.target - newRuns;
+        if (need <= 0) {
+          const wLeft = (teamSize - 1) - newWickets;
+          leadTrail = `${battingTeam} won by ${Math.max(0, wLeft)} wicket${wLeft !== 1 ? 's' : ''}`;
+        } else {
+          leadTrail = `${battingTeam} need ${need} more run${need !== 1 ? 's' : ''}`;
+        }
+      }
+    } else {
+      // Limited overs: only final innings has chasing info
+      const isFinalInningsNow = currentInnings === 2;
+      if (isFinalInningsNow && match.target) {
+        const need = match.target - newRuns;
+        const ballsLeft = oversLimit ? oversLimit * 6 - totalLegal : null;
+        if (need <= 0) {
+          const wLeft = (teamSize - 1) - newWickets;
+          leadTrail = `${battingTeam} won by ${Math.max(0, wLeft)} wicket${wLeft !== 1 ? 's' : ''}`;
+        } else if (ballsLeft !== null) {
+          leadTrail = `${battingTeam} need ${need} run${need !== 1 ? 's' : ''} off ${ballsLeft} ball${ballsLeft !== 1 ? 's' : ''}`;
+        } else {
+          leadTrail = `${battingTeam} need ${need} more run${need !== 1 ? 's' : ''}`;
+        }
       }
     }
 
@@ -216,7 +248,10 @@ export default function ScoringScreen({ route, navigation }) {
     let newStriker = striker;
     let newNonStriker = nonStriker;
     const isWide = ball.isExtra && ball.extraType === 'wide';
-    if (!isWide && !ball.isOut && nonStriker) {
+    // Last man stands: when only 1 wicket remains, the last man (striker) faces every ball —
+    // no rotation on odd runs and no over-end swap.
+    const isLastManPartnership = newWickets >= teamSize - 2;
+    if (!isWide && !ball.isOut && nonStriker && !isLastManPartnership) {
       const totalBatRuns = ball.runs;
       if (totalBatRuns % 2 === 1) {
         newStriker = nonStriker;
@@ -285,6 +320,7 @@ export default function ScoringScreen({ route, navigation }) {
     const newLegal = newOver * 6 + newBall;
     const overCompleted = newBall === 0 && newLegal > 0 && newLegal > prevLegal;
     if (overCompleted && !newState.isAllOut) {
+      setBowler(null); // force new bowler selection before next ball
       setTimeout(() => {
         setPreviousBowler(bowler);
         setNewBowlerPickerVisible(true);
@@ -326,25 +362,17 @@ export default function ScoringScreen({ route, navigation }) {
     const ended = await checkInningsOrMatchEnd(newState, newBalls, newRuns, newWickets, newOver, newBall, result.leadTrail);
     if (ended) return;
 
-    const newIsLastManIn = newWickets >= teamSize - 1 && !newState.isAllOut;
-
+    // Show new batter picker (innings hasn't ended, partner needed)
     if (!newState.isAllOut) {
-      if (newIsLastManIn) {
-        // Striker just got out — non-striker is now last man, bats alone
-        const lastMan = nonStriker ?? striker;
-        setStriker(lastMan);
-        setNonStriker(null);
-        updateMatch(matchId, { currentBatters: [lastMan, null] });
-      } else {
-        setTimeout(() => {
-          setNewBatterPickerVisible(true);
-        }, 300);
-      }
+      setTimeout(() => {
+        setNewBatterPickerVisible(true);
+      }, 300);
 
-      // Over end check
+      // Over end check — clear bowler so new one must be selected
       const newLegal = newOver * 6 + newBall;
       const prevLegal = currentOver * 6 + currentBall;
       if (newBall === 0 && newLegal > 0 && newLegal > prevLegal) {
+        setBowler(null);
         setPreviousBowler(bowler);
       }
     }
@@ -359,22 +387,25 @@ export default function ScoringScreen({ route, navigation }) {
   function handleNewBowlerSelect(name) {
     setNewBowlerPickerVisible(false);
     setBowler(name);
-    // When last man is batting alone, no swap — he stays striker
-    if (!nonStriker) {
+    // Last man stands: when 1 wicket remains (or no non-striker), don't rotate ends —
+    // the last man stays at the striker end to face all deliveries.
+    const isLastManPartnership = wickets >= teamSize - 2;
+    if (isLastManPartnership || !nonStriker) {
+      // No swap — last man keeps facing the ball
       updateMatch(matchId, {
         currentBowler: name,
-        currentBatters: [striker, null],
+        currentBatters: [striker, nonStriker],
       });
-      return;
+    } else {
+      // Normal over end: swap striker/non-striker
+      const tmp = striker;
+      setStriker(nonStriker);
+      setNonStriker(tmp);
+      updateMatch(matchId, {
+        currentBowler: name,
+        currentBatters: [nonStriker, striker],
+      });
     }
-    // Normal over end: swap striker/non-striker
-    const tmp = striker;
-    setStriker(nonStriker);
-    setNonStriker(tmp);
-    updateMatch(matchId, {
-      currentBowler: name,
-      currentBatters: [nonStriker, striker],
-    });
   }
 
   // ── Check if innings or match should end ────────────────────────────────────
@@ -399,7 +430,38 @@ export default function ScoringScreen({ route, navigation }) {
     };
 
     if (matchType === 'TEST') {
-      // Test: go to innings break with data
+      // Test innings 4 — match ends here
+      if (currentInnings === 4) {
+        const inn1 = match.innings1?.runs ?? 0;
+        const inn3 = match.innings3?.runs ?? 0;
+        const aAggregate = inn1 + inn3; // team that batted 1st & 3rd
+        const inn2 = match.innings2?.runs ?? 0;
+        const bAggregate = inn2 + newRuns;  // team that batted 2nd & 4th
+        let result;
+        if (targetReached) {
+          // Chasing team won
+          const wLeft = (teamSize - 1) - newWickets;
+          result = `${battingTeam} won by ${Math.max(0, wLeft)} wicket${wLeft !== 1 ? 's' : ''}`;
+        } else {
+          // Batting team (chasing) fell short — bowling team wins by runs
+          const margin = aAggregate - bAggregate;
+          result = margin > 0
+            ? `${bowlingTeam} won by ${margin} run${margin !== 1 ? 's' : ''}`
+            : 'Match tied';
+        }
+        await updateMatch(matchId, {
+          result,
+          leadTrail: result,
+          matchFinished: true,
+          status: 'finished',
+          matchStatus: 'Match Complete',
+          innings4: inningsData,
+        });
+        navigation.replace('MatchSummary', { matchId, matchName });
+        return true;
+      }
+
+      // Test innings 1–3 → innings break
       navigation.replace('InningsBreak', {
         matchId,
         inningsData,
@@ -645,8 +707,8 @@ export default function ScoringScreen({ route, navigation }) {
               )}
             </TouchableOpacity>
 
-            {/* Non-Striker (hidden when last batter) */}
-            {!isAllOut && !isLastManIn && (
+            {/* Non-Striker */}
+            {!isAllOut && (
               <TouchableOpacity
                 style={styles.playerRow}
                 onPress={() => setNonStrikerPickerVisible(true)}

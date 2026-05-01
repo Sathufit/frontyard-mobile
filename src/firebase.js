@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
+import { setLogLevel } from 'firebase/app';
 
 const firebaseConfig = {
   apiKey: "PASTE_YOUR_API_KEY",
@@ -12,4 +13,5 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+setLogLevel('error');
 export const db = getFirestore(app);

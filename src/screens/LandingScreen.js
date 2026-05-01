@@ -87,7 +87,7 @@ export default function LandingScreen({ navigation }) {
       <Animated.View style={[styles.ctaArea, { opacity: btnAnim }]}>
         <TouchableOpacity
           style={styles.primaryBtn}
-          onPress={() => navigation.navigate('Matches')}
+          onPress={() => navigation.navigate('MatchesTab')}
           activeOpacity={0.85}
         >
           <Text style={styles.primaryBtnText}>View Matches</Text>
