@@ -1,33 +1,50 @@
 export const colors = {
-  // Backgrounds — clean light theme
-  background: '#F2F2F7',
-  surface: '#FFFFFF',
-  surfaceElevated: '#FFFFFF',
+  // ─── Backgrounds ───────────────────────────────────────────────────────────
+  background: '#f8faf6',          // Elite Pitch surface (slight green tint)
+  surface: '#ffffff',
+  surfaceElevated: '#ffffff',
+  surfaceContainer: '#eceeeb',
+  surfaceContainerLow: '#f2f4f1',
 
-  // Borders
-  border: 'rgba(0,0,0,0.08)',
-  borderStrong: 'rgba(0,0,0,0.14)',
+  // ─── Borders ───────────────────────────────────────────────────────────────
+  border: '#e1e3e0',
+  borderStrong: '#bfc9c3',
 
-  // Brand accent — signature green
-  accent: '#1A7A3C',
-  accentDark: '#145E2D',
-  accentDim: 'rgba(26,122,60,0.08)',
-  accentMed: 'rgba(26,122,60,0.16)',
+  // ─── Primary — Deep Emerald ────────────────────────────────────────────────
+  accent: '#003527',              // kept as "accent" for all existing references
+  primary: '#003527',             // deep emerald
+  primaryDark: '#002419',
+  primaryContainer: '#064e3b',    // slightly lighter emerald
+  primaryFixed: '#b0f0d6',        // mint highlight
+  primaryFixedDim: '#95d3ba',
+  accentDim: 'rgba(0,53,39,0.08)',
+  accentMed: 'rgba(0,53,39,0.16)',
 
-  // Text hierarchy
-  textPrimary: '#0A0A0A',
-  textSecondary: '#5A5A6A',
-  textMuted: '#9A9AAA',
+  // ─── Secondary — Slate ────────────────────────────────────────────────────
+  secondary: '#404944',
+  secondaryContainer: '#d0e1fb',
 
-  // Semantic colors
-  error: '#D93025',
-  errorDim: 'rgba(217,48,37,0.08)',
+  // ─── Text hierarchy ────────────────────────────────────────────────────────
+  textPrimary: '#191c1b',
+  textSecondary: '#404944',
+  textMuted: '#707974',
+  textOnPrimary: '#ffffff',
+
+  // ─── Semantic ─────────────────────────────────────────────────────────────
+  error: '#ba1a1a',
+  errorDim: 'rgba(186,26,26,0.08)',
+  errorContainer: '#ffdad6',
   warning: '#C27C00',
-  warningDim: 'rgba(194,124,0,0.08)',
-  success: '#1A7A3C',
-  successDim: 'rgba(26,122,60,0.08)',
+  warningDim: 'rgba(194,124,0,0.10)',
+  success: '#003527',
+  successDim: 'rgba(0,53,39,0.08)',
   orange: '#C45200',
   orangeDim: 'rgba(196,82,0,0.08)',
+
+  // ─── Glassmorphism ─────────────────────────────────────────────────────────
+  glass: 'rgba(255,255,255,0.92)',
+  glassBorder: 'rgba(255,255,255,0.5)',
+  glassOverlay: 'rgba(248,250,246,0.85)',
 };
 
 export const PLAYERS = [

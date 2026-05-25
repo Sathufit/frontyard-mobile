@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity,
+  View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { subscribeToMatch } from '../services/matchService';
 import { colors } from '../utils/constants';
 
@@ -67,14 +68,17 @@ export default function MatchSummaryScreen({ route, navigation }) {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Result Banner */}
-        <View style={styles.resultBanner}>
-          <Text style={styles.resultLabel}>Match Result</Text>
-          <Text style={styles.resultText}>{match.result || 'Match Complete'}</Text>
-          <Text style={styles.matchTitle}>{match.title}</Text>
-        </View>
+        {/* Result Banner — dark emerald gradient */}
+        <LinearGradient colors={['#002419', '#003527', '#064e3b']} style={styles.resultBanner}>
+          <SafeAreaView edges={['top']} style={styles.resultBannerInner}>
+            <Text style={styles.resultLabel}>Match Result</Text>
+            <Text style={styles.resultText}>{match.result || 'Match Complete'}</Text>
+            <Text style={styles.matchTitle}>{match.title}</Text>
+          </SafeAreaView>
+        </LinearGradient>
 
         {/* Innings scorecards */}
         <InningsCard innings={match.innings1} label="1st Innings" />
@@ -99,10 +103,13 @@ export default function MatchSummaryScreen({ route, navigation }) {
         </View>
 
         <TouchableOpacity
-          style={styles.newMatchButton}
+          style={styles.newMatchButtonOuter}
           onPress={() => navigation.reset({ index: 0, routes: [{ name: 'CreateMatch' }] })}
+          activeOpacity={0.88}
         >
-          <Text style={styles.newMatchButtonText}>Start New Match</Text>
+          <LinearGradient colors={['#003527', '#064e3b']} start={{x:0,y:0}} end={{x:1,y:0}} style={styles.newMatchButton}>
+            <Text style={styles.newMatchButtonText}>Start New Match</Text>
+          </LinearGradient>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -114,7 +121,7 @@ export default function MatchSummaryScreen({ route, navigation }) {
 
         <View style={{ height: 20 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -130,43 +137,83 @@ function InfoRow({ label, value }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   loading: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' },
-  content: { padding: 20, gap: 16, paddingBottom: 40 },
-  resultBanner: {
-    backgroundColor: colors.accentDim,
-    borderRadius: 20, paddingVertical: 32, paddingHorizontal: 24, alignItems: 'center',
-    borderWidth: 1, borderColor: colors.accentMed,
-  },
-  resultLabel: { color: colors.accent, fontSize: 11, fontWeight: '700', letterSpacing: 2, marginBottom: 8, textTransform: 'uppercase' },
-  resultText: { color: colors.textPrimary, fontSize: 24, fontWeight: '800', textAlign: 'center', letterSpacing: -0.5, lineHeight: 30 },
-  matchTitle: { color: colors.textSecondary, fontSize: 14, marginTop: 10, textAlign: 'center' },
+  content: { gap: 16, paddingBottom: 40 },
 
-  inningsCard: {
-    backgroundColor: colors.surfaceElevated, borderRadius: 14,
-    padding: 16, borderWidth: 1, borderColor: colors.border,
+  // Result gradient banner
+  resultBanner: {},
+  resultBannerInner: {
+    paddingHorizontal: 24,
+    paddingTop: 4,
+    paddingBottom: 32,
+    alignItems: 'center',
   },
-  cardTitle: { color: colors.accent, fontSize: 11, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 4 },
-  cardScore: { color: colors.textPrimary, fontSize: 28, fontWeight: '800', letterSpacing: -0.8, marginBottom: 14 },
+  resultLabel: { color: colors.primaryFixedDim, fontSize: 11, fontWeight: '700', letterSpacing: 2, marginBottom: 10, textTransform: 'uppercase' },
+  resultText: { color: '#ffffff', fontSize: 26, fontWeight: '800', textAlign: 'center', letterSpacing: -0.5, lineHeight: 32 },
+  matchTitle: { color: 'rgba(255,255,255,0.60)', fontSize: 14, marginTop: 10, textAlign: 'center' },
+
+  // Innings cards
+  inningsCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+  cardTitle: { color: colors.primary, fontSize: 11, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 4 },
+  cardScore: { color: colors.textPrimary, fontSize: 30, fontWeight: '800', letterSpacing: -0.8, marginBottom: 14 },
   subTitle: { color: colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 0.5, marginBottom: 6, textTransform: 'uppercase' },
   tableHeader: { flexDirection: 'row', marginBottom: 4 },
-  tableRow: { flexDirection: 'row', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.border },
-  th: { flex: 1, color: colors.textMuted, fontSize: 11, textAlign: 'center', fontWeight: '600' },
+  tableRow: { flexDirection: 'row', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border },
+  th: { flex: 1, color: colors.textMuted, fontSize: 11, textAlign: 'center', fontWeight: '700' },
   thWide: { flex: 3, textAlign: 'left' },
   td: { flex: 1, color: colors.textSecondary, fontSize: 12, textAlign: 'center' },
 
-  infoCard: { backgroundColor: colors.surfaceElevated, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: colors.border },
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: colors.border },
+  // Info card
+  infoCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
   infoLabel: { color: colors.textMuted, fontSize: 13 },
   infoValue: { color: colors.textPrimary, fontSize: 13, fontWeight: '600', flex: 1, textAlign: 'right' },
   playerItem: { color: colors.textSecondary, fontSize: 13, paddingVertical: 3 },
 
-  homeButton: {
-    backgroundColor: colors.surfaceElevated, borderRadius: 14, paddingVertical: 17,
-    alignItems: 'center', borderWidth: 1, borderColor: colors.border,
+  // Buttons
+  newMatchButtonOuter: {
+    marginHorizontal: 16,
+    borderRadius: 14,
+    overflow: 'hidden',
+    shadowColor: '#003527',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.28,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  homeButtonText: { color: colors.textPrimary, fontSize: 16, fontWeight: '600' },
-  newMatchButton: {
-    backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 17,
-    alignItems: 'center',
-  },
+  newMatchButton: { paddingVertical: 18, alignItems: 'center' },
   newMatchButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  homeButton: {
+    marginHorizontal: 16,
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    paddingVertical: 17,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: colors.border,
+  },
+  homeButtonText: { color: colors.textSecondary, fontSize: 16, fontWeight: '600' },
 });

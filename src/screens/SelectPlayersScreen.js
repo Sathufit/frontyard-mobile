@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert, ActivityIndicator,
+  TextInput, Alert, ActivityIndicator, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { serverTimestamp } from 'firebase/firestore';
 import { createMatch } from '../services/matchService';
 import { colors, PLAYERS } from '../utils/constants';
@@ -129,9 +130,15 @@ export default function SelectPlayersScreen({ route, navigation }) {
 
   if (step === 'toss') {
     return (
-      <SafeAreaView style={styles.container} edges={['bottom']}>
+      <View style={styles.container}>
+        <StatusBar barStyle="light-content" />
+        <LinearGradient colors={['#002419', '#003527']} style={styles.gradientHeader}>
+          <SafeAreaView edges={['top']} style={styles.gradientHeaderInner}>
+            <Text style={styles.gradientLabel}>TOSS</Text>
+            <Text style={styles.gradientTitle}>Coin Toss</Text>
+          </SafeAreaView>
+        </LinearGradient>
         <ScrollView contentContainerStyle={styles.content}>
-          <Text style={styles.heading}>Toss</Text>
 
           <Text style={styles.label}>Toss Winner</Text>
           <View style={styles.toggleRow}>
@@ -141,7 +148,13 @@ export default function SelectPlayersScreen({ route, navigation }) {
                 style={[styles.toggleBtn, tossWinner === t && styles.toggleBtnActive]}
                 onPress={() => setTossWinner(t)}
               >
-                <Text style={[styles.toggleText, tossWinner === t && styles.toggleTextActive]}>{t}</Text>
+                {tossWinner === t ? (
+                  <LinearGradient colors={['#003527', '#064e3b']} start={{x:0,y:0}} end={{x:1,y:0}} style={styles.toggleBtnGradient}>
+                    <Text style={styles.toggleTextActive}>{t}</Text>
+                  </LinearGradient>
+                ) : (
+                  <Text style={styles.toggleText}>{t}</Text>
+                )}
               </TouchableOpacity>
             ))}
           </View>
@@ -154,9 +167,13 @@ export default function SelectPlayersScreen({ route, navigation }) {
                 style={[styles.toggleBtn, tossDecision === d && styles.toggleBtnActive]}
                 onPress={() => setTossDecision(d)}
               >
-                <Text style={[styles.toggleText, tossDecision === d && styles.toggleTextActive]}>
-                  {d.charAt(0).toUpperCase() + d.slice(1)} First
-                </Text>
+                {tossDecision === d ? (
+                  <LinearGradient colors={['#003527', '#064e3b']} start={{x:0,y:0}} end={{x:1,y:0}} style={styles.toggleBtnGradient}>
+                    <Text style={styles.toggleTextActive}>{d.charAt(0).toUpperCase() + d.slice(1)} First</Text>
+                  </LinearGradient>
+                ) : (
+                  <Text style={styles.toggleText}>{d.charAt(0).toUpperCase() + d.slice(1)} First</Text>
+                )}
               </TouchableOpacity>
             ))}
           </View>
@@ -167,24 +184,30 @@ export default function SelectPlayersScreen({ route, navigation }) {
             </Text>
           )}
 
-          <TouchableOpacity style={styles.nextButton} onPress={handleNextStep} disabled={loading}>
-            {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.nextButtonText}>Start Match</Text>}
+          <TouchableOpacity style={styles.nextButtonOuter} onPress={handleNextStep} disabled={loading} activeOpacity={0.88}>
+            <LinearGradient colors={['#003527', '#064e3b']} start={{x:0,y:0}} end={{x:1,y:0}} style={styles.nextButton}>
+              {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.nextButtonText}>Start Match</Text>}
+            </LinearGradient>
           </TouchableOpacity>
         </ScrollView>
-      </SafeAreaView>
+      </View>
     );
   }
 
   const teamName = currentTeam === 'A' ? teamA : teamB;
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
-      <View style={styles.header}>
-        <Text style={styles.heading}>
-          {teamName} — {selectedPlayers.length}/11
-        </Text>
-        <Text style={styles.subheading}>Select & order batting lineup</Text>
-      </View>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      <LinearGradient colors={['#002419', '#003527']} style={styles.gradientHeader}>
+        <SafeAreaView edges={['top']} style={styles.gradientHeaderInner}>
+          <Text style={styles.gradientLabel}>{currentTeam === 'A' ? 'TEAM A' : 'TEAM B'}</Text>
+          <Text style={styles.gradientTitle}>
+            {teamName} — {selectedPlayers.length}/11
+          </Text>
+          <Text style={styles.gradientSub}>Select & order batting lineup</Text>
+        </SafeAreaView>
+      </LinearGradient>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {/* Selected Players */}
@@ -244,22 +267,36 @@ export default function SelectPlayersScreen({ route, navigation }) {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.nextButton} onPress={handleNextStep}>
-          <Text style={styles.nextButtonText}>
-            {step === 'selectA' ? `Next: ${teamB} Players →` : 'Next: Toss →'}
-          </Text>
+        <TouchableOpacity style={styles.nextButtonOuter} onPress={handleNextStep} activeOpacity={0.88}>
+          <LinearGradient colors={['#003527', '#064e3b']} start={{x:0,y:0}} end={{x:1,y:0}} style={styles.nextButton}>
+            <Text style={styles.nextButtonText}>
+              {step === 'selectA' ? `Next: ${teamB} Players →` : 'Next: Toss →'}
+            </Text>
+          </LinearGradient>
         </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: colors.border },
-  heading: { color: colors.textPrimary, fontSize: 22, fontWeight: '700', letterSpacing: -0.4 },
-  subheading: { color: colors.textMuted, fontSize: 13, marginTop: 3 },
-  content: { padding: 20, gap: 6, paddingBottom: 40 },
+
+  // Gradient header (shared between select and toss screens)
+  gradientHeader: { paddingBottom: 24 },
+  gradientHeaderInner: { paddingHorizontal: 24, paddingTop: 4 },
+  gradientLabel: {
+    color: colors.primaryFixedDim,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  gradientTitle: { color: '#ffffff', fontSize: 26, fontWeight: '700', letterSpacing: -0.5 },
+  gradientSub: { color: 'rgba(255,255,255,0.60)', fontSize: 13, marginTop: 4 },
+
+  content: { padding: 20, paddingBottom: 48 },
   section: { marginBottom: 8 },
   label: {
     color: colors.textSecondary,
@@ -268,53 +305,122 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     textTransform: 'uppercase',
     marginBottom: 8,
-    marginTop: 4,
+    marginTop: 12,
   },
+
+  // Batting order rows
   selectedRow: {
-    flexDirection: 'row', alignItems: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.accentDim,
-    borderRadius: 10, paddingVertical: 11, paddingHorizontal: 12, marginBottom: 4,
-    borderWidth: 1, borderColor: colors.accentMed,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 5,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary,
   },
-  orderNum: { color: colors.accent, fontWeight: '700', width: 24, fontSize: 14 },
-  playerNameSelected: { flex: 1, color: colors.textPrimary, fontSize: 14, fontWeight: '500' },
+  orderNum: {
+    color: colors.primary,
+    fontWeight: '800',
+    width: 26,
+    fontSize: 14,
+  },
+  playerNameSelected: { flex: 1, color: colors.textPrimary, fontSize: 14, fontWeight: '600' },
   moveButtons: { flexDirection: 'row', gap: 4, marginRight: 8 },
-  moveBtn: { paddingHorizontal: 8, paddingVertical: 5, backgroundColor: colors.surface, borderRadius: 6 },
-  moveBtnText: { color: colors.textSecondary, fontSize: 13 },
-  removeBtn: { paddingHorizontal: 8, paddingVertical: 4 },
-  removeBtnText: { color: colors.error, fontSize: 15, fontWeight: '600' },
-  playerRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingVertical: 13, paddingHorizontal: 16,
-    borderRadius: 10, marginBottom: 4,
-    backgroundColor: colors.surfaceElevated,
-    borderWidth: 1, borderColor: colors.border,
+  moveBtn: {
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    backgroundColor: colors.surface,
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  playerRowSelected: { borderColor: colors.accentMed, backgroundColor: colors.accentDim },
+  moveBtnText: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
+  removeBtn: { paddingHorizontal: 8, paddingVertical: 4 },
+  removeBtnText: { color: colors.error, fontSize: 15, fontWeight: '700' },
+
+  // Pool rows
+  playerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 4,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  playerRowSelected: { borderColor: colors.primary, backgroundColor: colors.accentDim },
   playerRowDisabled: { opacity: 0.35 },
   playerName: { color: colors.textPrimary, fontSize: 14 },
-  playerNameActive: { color: colors.accent, fontWeight: '600' },
-  checkmark: { color: colors.accent, fontWeight: '700', fontSize: 16 },
+  playerNameActive: { color: colors.primary, fontWeight: '700' },
+  checkmark: { color: colors.primary, fontWeight: '700', fontSize: 16 },
+
   customRow: { flexDirection: 'row', gap: 10, marginBottom: 8 },
   input: {
-    backgroundColor: colors.surfaceElevated, borderColor: colors.border,
-    borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12,
-    color: colors.textPrimary, fontSize: 14,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderWidth: 1.5,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: colors.textPrimary,
+    fontSize: 14,
   },
   addBtn: {
-    backgroundColor: colors.surfaceElevated, borderColor: colors.border,
-    borderWidth: 1, borderRadius: 12, paddingHorizontal: 18, justifyContent: 'center',
+    backgroundColor: colors.surfaceContainer,
+    borderColor: colors.border,
+    borderWidth: 1.5,
+    borderRadius: 12,
+    paddingHorizontal: 18,
+    justifyContent: 'center',
   },
-  addBtnText: { color: colors.textPrimary, fontWeight: '600' },
-  nextButton: {
-    backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 18,
-    alignItems: 'center', marginTop: 20,
+  addBtnText: { color: colors.textPrimary, fontWeight: '700' },
+
+  nextButtonOuter: {
+    marginTop: 24,
+    borderRadius: 14,
+    overflow: 'hidden',
+    shadowColor: '#003527',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.28,
+    shadowRadius: 12,
+    elevation: 6,
   },
+  nextButton: { paddingVertical: 18, alignItems: 'center' },
   nextButtonText: { color: '#FFFFFF', fontWeight: '700', fontSize: 16 },
-  toggleRow: { flexDirection: 'row', gap: 8, backgroundColor: colors.surface, borderRadius: 12, padding: 3, marginBottom: 16 },
-  toggleBtn: { flex: 1, paddingVertical: 11, alignItems: 'center', borderRadius: 10 },
-  toggleBtnActive: { backgroundColor: colors.surfaceElevated },
-  toggleText: { color: colors.textMuted, fontWeight: '600', fontSize: 14 },
-  toggleTextActive: { color: colors.textPrimary, fontWeight: '700' },
-  tossSummary: { color: colors.accent, textAlign: 'center', fontSize: 16, fontWeight: '600', marginVertical: 20, letterSpacing: 0.2 },
+
+  // Toss toggle
+  toggleRow: {
+    flexDirection: 'row',
+    gap: 8,
+    backgroundColor: colors.surfaceContainer,
+    borderRadius: 14,
+    padding: 4,
+    marginBottom: 8,
+  },
+  toggleBtn: { flex: 1, borderRadius: 11, overflow: 'hidden' },
+  toggleBtnActive: {},
+  toggleBtnGradient: { paddingVertical: 12, alignItems: 'center' },
+  toggleText: {
+    color: colors.textMuted,
+    fontWeight: '600',
+    fontSize: 14,
+    paddingVertical: 12,
+    textAlign: 'center',
+  },
+  toggleTextActive: { color: '#ffffff', fontWeight: '700', fontSize: 14 },
+  tossSummary: {
+    color: colors.primary,
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '700',
+    marginVertical: 20,
+    letterSpacing: 0.2,
+  },
 });

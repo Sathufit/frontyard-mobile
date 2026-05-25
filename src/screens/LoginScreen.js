@@ -4,6 +4,7 @@ import {
   KeyboardAvoidingView, Platform, Alert, ActivityIndicator, Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../utils/constants';
 
@@ -15,7 +16,7 @@ export default function LoginScreen({ navigation, isEmbedded = false }) {
   const [focusedField, setFocusedField] = useState(null);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
+  const slideAnim = useRef(new Animated.Value(24)).current;
 
   useEffect(() => {
     Animated.parallel([
@@ -38,22 +39,27 @@ export default function LoginScreen({ navigation, isEmbedded = false }) {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.safeArea}>
+      {/* Dark emerald header */}
+      <LinearGradient
+        colors={['#002419', '#003527']}
+        style={styles.header}
+      >
+        <SafeAreaView edges={['top']} style={styles.headerInner}>
+          <Text style={styles.wordmark}>FRONTYARD</Text>
+          <Text style={styles.brandTitle}>{isEmbedded ? 'Sign In' : 'Admin'}</Text>
+          <Text style={styles.brandSub}>
+            {isEmbedded ? 'Sign in to start or manage matches' : 'Access the admin dashboard'}
+          </Text>
+        </SafeAreaView>
+      </LinearGradient>
+
+      {/* Form area */}
       <KeyboardAvoidingView
-        style={styles.container}
+        style={styles.formWrapper}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <Animated.View style={[styles.inner, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-          {/* Wordmark */}
-          <View style={styles.brand}>
-            <Text style={styles.wordmark}>FRONTYARD</Text>
-            <Text style={styles.brandTitle}>{isEmbedded ? 'Login Required' : 'Admin'}</Text>
-            {isEmbedded && (
-              <Text style={styles.embeddedSubtitle}>Sign in to start or manage matches</Text>
-            )}
-          </View>
-
-          {/* Form card */}
           <View style={styles.formCard}>
             <Text style={styles.formLabel}>Username</Text>
             <TextInput
@@ -80,84 +86,106 @@ export default function LoginScreen({ navigation, isEmbedded = false }) {
               onBlur={() => setFocusedField(null)}
             />
 
-            <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading} activeOpacity={0.85}>
-              {loading ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.buttonText}>Sign In</Text>
-              )}
+            <TouchableOpacity style={styles.buttonOuter} onPress={handleLogin} disabled={loading} activeOpacity={0.88}>
+              <LinearGradient
+                colors={['#003527', '#064e3b']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.button}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#ffffff" />
+                ) : (
+                  <Text style={styles.buttonText}>Sign In</Text>
+                )}
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         </Animated.View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
-  container: { flex: 1, justifyContent: 'center' },
-  inner: { paddingHorizontal: 28 },
-  brand: { alignItems: 'center', marginBottom: 40 },
+
+  // Header
+  header: { paddingBottom: 32 },
+  headerInner: { paddingHorizontal: 28, paddingTop: 8, alignItems: 'center' },
   wordmark: {
-    color: colors.accent,
+    color: colors.primaryFixedDim,
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 5,
     textTransform: 'uppercase',
-    marginBottom: 4,
+    marginBottom: 10,
   },
   brandTitle: {
-    color: colors.textPrimary,
+    color: '#ffffff',
     fontSize: 40,
     fontWeight: '700',
     letterSpacing: -1,
   },
-  embeddedSubtitle: {
-    color: colors.textSecondary,
+  brandSub: {
+    color: 'rgba(255,255,255,0.65)',
     fontSize: 14,
     marginTop: 6,
     textAlign: 'center',
   },
+
+  // Form
+  formWrapper: { flex: 1, justifyContent: 'center' },
+  inner: { paddingHorizontal: 24 },
   formCard: {
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: 20,
+    backgroundColor: colors.surface,
+    borderRadius: 24,
     padding: 24,
     borderWidth: 1,
     borderColor: colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    elevation: 3,
+    marginTop: -24,
   },
   formLabel: {
     color: colors.textSecondary,
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.5,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.8,
     marginBottom: 8,
     textTransform: 'uppercase',
   },
   input: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceContainerLow,
     borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 12,
+    borderWidth: 1.5,
+    borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 14,
     color: colors.textPrimary,
     fontSize: 16,
   },
   inputFocused: {
-    borderColor: colors.accent,
+    borderColor: colors.primary,
+    borderWidth: 2,
+    backgroundColor: colors.surface,
+  },
+  buttonOuter: {
+    marginTop: 24,
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#003527',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 5,
   },
   button: {
-    backgroundColor: colors.accent,
-    borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
-    marginTop: 24,
   },
-  buttonText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 16,
-    letterSpacing: 0.3,
-  },
+  buttonText: { color: '#ffffff', fontWeight: '700', fontSize: 16, letterSpacing: 0.3 },
 });

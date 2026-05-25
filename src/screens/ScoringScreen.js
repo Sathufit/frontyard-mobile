@@ -4,6 +4,7 @@ import {
   Modal, Alert, StatusBar, FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { subscribeToMatch, updateMatch } from '../services/matchService';
 import { computeMatchState } from '../utils/scoringEngine';
 import { colors, DISMISSAL_TYPES, DISMISSAL_LABELS } from '../utils/constants';
@@ -115,6 +116,8 @@ export default function ScoringScreen({ route, navigation }) {
   const pendingBallRef = useRef(null);
   const [pendingNewBatterCallback, setPendingNewBatterCallback] = useState(null);
   const [pendingNewBowlerCallback, setPendingNewBowlerCallback] = useState(null);
+  // Flag: after selecting a new batter, also open the bowler picker (wicket on last ball of over)
+  const needsNewBowlerRef = useRef(false);
 
   useEffect(() => {
     const unsub = subscribeToMatch(matchId, (m) => {
@@ -303,14 +306,8 @@ export default function ScoringScreen({ route, navigation }) {
     const result = await pushBall(ball);
     const { newState, newBalls, newOver, newBall, newWickets, newRuns } = result;
 
-    // Check over complete
-    if (!isExtra || (extraType !== 'wide' && extraType !== 'noBall')) {
-      if (newBall === 0 && newOver > (result.newOver - 1)) {
-        // Over just ended — check innings/match end first
-      }
-    }
-
-    await checkInningsOrMatchEnd(newState, newBalls, newRuns, newWickets, newOver, newBall, result.leadTrail);
+    const ended = await checkInningsOrMatchEnd(newState, newBalls, newRuns, newWickets, newOver, newBall, result.leadTrail);
+    if (ended) return;
 
     // If over ended (newBall===0 and over changed)
     const prevLegal = currentOver * 6 + currentBall;
@@ -363,9 +360,11 @@ export default function ScoringScreen({ route, navigation }) {
       const overEnded = newBall === 0 && (newOver * 6) > (currentOver * 6 + currentBall);
 
       if (newWickets >= teamSize - 1) {
-        // Last man plays alone — no new batter, clear non-striker
+        // Striker got out — the non-striker is the last remaining batter; they bat alone
+        const lastMan = nonStriker;
+        setStriker(lastMan);
         setNonStriker(null);
-        updateMatch(matchId, { currentBatters: [result.newStriker, null] });
+        updateMatch(matchId, { currentBatters: [lastMan, null] });
         if (overEnded) {
           setBowler(null);
           setPreviousBowler(bowler);
@@ -373,11 +372,13 @@ export default function ScoringScreen({ route, navigation }) {
         }
       } else {
         // Normal: bring in a new batter
-        setTimeout(() => setNewBatterPickerVisible(true), 300);
         if (overEnded) {
+          // Wicket AND over ended — select batter first, then bowler
           setBowler(null);
           setPreviousBowler(bowler);
+          needsNewBowlerRef.current = true;
         }
+        setTimeout(() => setNewBatterPickerVisible(true), 300);
       }
     }
   }
@@ -386,6 +387,10 @@ export default function ScoringScreen({ route, navigation }) {
     setNewBatterPickerVisible(false);
     setStriker(name);
     updateMatch(matchId, { currentBatters: [name, nonStriker] });
+    if (needsNewBowlerRef.current) {
+      needsNewBowlerRef.current = false;
+      setTimeout(() => setNewBowlerPickerVisible(true), 200);
+    }
   }
 
   function handleNewBowlerSelect(name) {
@@ -530,19 +535,15 @@ export default function ScoringScreen({ route, navigation }) {
       {
         text: 'Undo', style: 'destructive',
         onPress: async () => {
+          const lastBall = balls[balls.length - 1];
           const newBalls = balls.slice(0, -1);
           const newState = computeMatchState(newBalls, teamSize);
           const { runs: r, wickets: w, currentOver: co, currentBall: cb } = newState;
           const totalLegal = co * 6 + cb;
           const rr = totalLegal > 0 ? ((r / totalLegal) * 6).toFixed(2) : '0.00';
 
-          // Find current batters from state (non-out batters)
-          const activeBatters = battingTeamPlayers.filter(
-            (p) => !newState.batterStats.find((b) => b.name === p && b.isOut)
-              && newState.batterStats.find((b) => b.name === p)
-          );
-
-          await updateMatch(matchId, {
+          // If the undone ball was a wicket, restore the dismissed batter
+          const updatePayload = {
             score: `${r}/${w}`,
             overs: `Overs: ${co}.${cb}`,
             runRate: `Rate: ${rr}`,
@@ -551,8 +552,20 @@ export default function ScoringScreen({ route, navigation }) {
             balls: newBalls,
             batterStats: newState.batterStats,
             bowlerStats: newState.bowlerStats,
-          });
+          };
+          if (lastBall?.isOut) {
+            // Return the dismissed batter to the striker end;
+            // the current non-striker (or second batter) stays.
+            const dismissedBatter = lastBall.batter;
+            const otherBatter = match.currentBatters?.[0] === dismissedBatter
+              ? match.currentBatters?.[1]
+              : match.currentBatters?.[0];
+            updatePayload.currentBatters = [dismissedBatter, otherBatter ?? null];
+          }
+
+          await updateMatch(matchId, updatePayload);
         },
+
       },
     ]);
   }
@@ -653,24 +666,24 @@ export default function ScoringScreen({ route, navigation }) {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
-      <SafeAreaView style={{ flex: 1 }}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle} numberOfLines={1}>{matchName}</Text>
-          <View style={styles.headerActions}>
-            {matchType === 'TEST' && (
-              <TouchableOpacity style={styles.declareBtn} onPress={handleDeclare}>
-                <Text style={styles.declareBtnText}>Declare</Text>
+      <StatusBar barStyle="light-content" />
+      <LinearGradient colors={['#002419', '#003527', '#064e3b']} style={styles.scorePanelGradient}>
+        <SafeAreaView edges={['top']} style={styles.scorePanelInner}>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.headerTitle} numberOfLines={1}>{matchName}</Text>
+            <View style={styles.headerActions}>
+              {matchType === 'TEST' && (
+                <TouchableOpacity style={styles.declareBtn} onPress={handleDeclare}>
+                  <Text style={styles.declareBtnText}>Declare</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity style={styles.endBtn} onPress={handleEndMatch}>
+                <Text style={styles.endBtnText}>End</Text>
               </TouchableOpacity>
-            )}
-            <TouchableOpacity style={styles.endBtn} onPress={handleEndMatch}>
-              <Text style={styles.endBtnText}>End</Text>
-            </TouchableOpacity>
+            </View>
           </View>
-        </View>
 
-        <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
           {/* Score Panel */}
           <View style={styles.scorePanel}>
             <Text style={styles.teamNameLabel}>{battingTeam}</Text>
@@ -679,13 +692,16 @@ export default function ScoringScreen({ route, navigation }) {
             <View style={styles.rateRow}>
               <Text style={styles.rateText}>Rate: {runRate}</Text>
               {requiredRate && isChasingInnings && (
-                <Text style={[styles.rateText, { color: colors.warning }]}>  Req: {requiredRate}</Text>
+                <Text style={[styles.rateText, { color: colors.primaryFixedDim }]}>  Req: {requiredRate}</Text>
               )}
             </View>
             {match.leadTrail ? <Text style={styles.leadTrail}>{match.leadTrail}</Text> : null}
             <Text style={styles.inningsLabel}>Innings {currentInnings}</Text>
           </View>
+        </SafeAreaView>
+      </LinearGradient>
 
+      <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
           {/* Players Panel */}
           <View style={styles.playersPanel}>
             {/* Striker */}
@@ -820,7 +836,6 @@ export default function ScoringScreen({ route, navigation }) {
 
           <View style={{ height: 40 }} />
         </ScrollView>
-      </SafeAreaView>
 
       {/* Modals */}
       <PickerModal
@@ -870,31 +885,32 @@ export default function ScoringScreen({ route, navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+
+  // Gradient score panel at top
+  scorePanelGradient: {},
+  scorePanelInner: { paddingBottom: 4 },
+
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingVertical: 13,
-    borderBottomWidth: 1, borderBottomColor: colors.border,
-    backgroundColor: colors.surfaceElevated,
   },
-  headerTitle: { color: colors.textPrimary, fontSize: 15, fontWeight: '600', flex: 1, marginRight: 8 },
+  headerTitle: { color: 'rgba(255,255,255,0.85)', fontSize: 15, fontWeight: '600', flex: 1, marginRight: 8 },
   headerActions: { flexDirection: 'row', gap: 8 },
-  endBtn: { backgroundColor: colors.errorDim, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,59,48,0.3)' },
-  endBtnText: { color: colors.error, fontWeight: '700', fontSize: 13 },
-  declareBtn: { backgroundColor: colors.warningDim, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,214,10,0.3)' },
-  declareBtnText: { color: colors.warning, fontWeight: '700', fontSize: 13 },
+  endBtn: { backgroundColor: 'rgba(186,26,26,0.25)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(186,26,26,0.4)' },
+  endBtnText: { color: '#ff6b6b', fontWeight: '700', fontSize: 13 },
+  declareBtn: { backgroundColor: 'rgba(194,124,0,0.2)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(194,124,0,0.35)' },
+  declareBtnText: { color: colors.primaryFixed, fontWeight: '700', fontSize: 13 },
 
   scorePanel: {
-    backgroundColor: colors.surfaceElevated,
-    paddingVertical: 22, paddingHorizontal: 20, alignItems: 'center',
-    borderBottomWidth: 1, borderBottomColor: colors.border,
+    paddingVertical: 18, paddingHorizontal: 20, alignItems: 'center',
   },
-  teamNameLabel: { color: colors.textMuted, fontSize: 12, letterSpacing: 0.5, marginBottom: 4, textTransform: 'uppercase', fontWeight: '600' },
-  scoreBig: { color: colors.textPrimary, fontSize: 52, fontWeight: '800', letterSpacing: -2 },
-  oversText: { color: colors.textSecondary, fontSize: 14, marginTop: 4 },
+  teamNameLabel: { color: colors.primaryFixedDim, fontSize: 11, letterSpacing: 1.5, marginBottom: 4, textTransform: 'uppercase', fontWeight: '700' },
+  scoreBig: { color: '#ffffff', fontSize: 52, fontWeight: '800', letterSpacing: -2 },
+  oversText: { color: 'rgba(255,255,255,0.65)', fontSize: 14, marginTop: 4 },
   rateRow: { flexDirection: 'row', gap: 16, marginTop: 6 },
-  rateText: { color: colors.textSecondary, fontSize: 13 },
-  leadTrail: { color: colors.accent, fontSize: 13, marginTop: 8, textAlign: 'center', fontWeight: '500' },
-  inningsLabel: { color: colors.textMuted, fontSize: 11, marginTop: 4, letterSpacing: 0.3 },
+  rateText: { color: 'rgba(255,255,255,0.70)', fontSize: 13 },
+  leadTrail: { color: colors.primaryFixed, fontSize: 13, marginTop: 8, textAlign: 'center', fontWeight: '600' },
+  inningsLabel: { color: 'rgba(255,255,255,0.45)', fontSize: 11, marginTop: 4, letterSpacing: 0.3 },
 
   playersPanel: {
     backgroundColor: colors.surface,
@@ -918,13 +934,13 @@ const styles = StyleSheet.create({
   ballRow: { flexDirection: 'row', gap: 7, flexWrap: 'wrap' },
   ballBtn: {
     flex: 1, minWidth: 48, paddingVertical: 16, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.surface,
     borderRadius: 12, borderWidth: 1, borderColor: colors.border,
   },
   ballBtnText: { color: colors.textPrimary, fontWeight: '700', fontSize: 17 },
-  ballBtnGreen: { backgroundColor: colors.successDim, borderColor: 'rgba(48,209,88,0.3)' },
-  ballBtnGreenText: { color: colors.success },
-  ballBtnYellow: { backgroundColor: colors.warningDim, borderColor: 'rgba(255,214,10,0.3)' },
+  ballBtnGreen: { backgroundColor: colors.accentDim, borderColor: colors.accentMed },
+  ballBtnGreenText: { color: colors.primary },
+  ballBtnYellow: { backgroundColor: colors.warningDim, borderColor: 'rgba(194,124,0,0.3)' },
   ballBtnYellowText: { color: colors.warning },
   ballBtnWide: {
     flex: 1, minWidth: 60, paddingVertical: 13, alignItems: 'center', justifyContent: 'center',
@@ -932,7 +948,7 @@ const styles = StyleSheet.create({
   },
   ballBtnExtra: { backgroundColor: colors.orangeDim, borderColor: 'rgba(255,159,10,0.3)' },
   ballBtnExtraText: { color: colors.orange, fontWeight: '700', fontSize: 12 },
-  ballBtnWicket: { backgroundColor: colors.errorDim, borderColor: 'rgba(255,59,48,0.3)' },
+  ballBtnWicket: { backgroundColor: colors.errorDim, borderColor: 'rgba(186,26,26,0.3)' },
   ballBtnWicketText: { color: colors.error, fontWeight: '700', fontSize: 12 },
 
   lastOverSection: { paddingHorizontal: 16, paddingVertical: 10 },
@@ -944,12 +960,12 @@ const styles = StyleSheet.create({
 
   extrasRow: {
     flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 12,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceContainerLow,
     borderTopWidth: 1, borderTopColor: colors.border,
     gap: 4,
   },
   extraItem: { flex: 1, alignItems: 'center' },
-  extraLabel: { color: colors.textMuted, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: '600' },
+  extraLabel: { color: colors.textMuted, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: '700' },
   extraVal: { color: colors.textPrimary, fontWeight: '700', fontSize: 17, marginTop: 3 },
 
   undoBtn: {
@@ -958,12 +974,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface, borderRadius: 12,
     borderWidth: 1, borderColor: colors.border,
   },
-  undoBtnText: { color: colors.warning, fontWeight: '600', fontSize: 14 },
+  undoBtnText: { color: colors.textMuted, fontWeight: '600', fontSize: 14 },
 
   // Modal styles
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' },
   modalSheet: {
-    backgroundColor: colors.surfaceElevated, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24,
     padding: 24, maxHeight: '80%',
     borderTopWidth: 1, borderTopColor: colors.borderStrong,
   },
@@ -977,9 +993,9 @@ const styles = StyleSheet.create({
   dismissalBtn: {
     paddingHorizontal: 16, paddingVertical: 11,
     borderRadius: 10, borderWidth: 1, borderColor: colors.border,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceContainerLow,
   },
-  dismissalBtnActive: { backgroundColor: colors.errorDim, borderColor: 'rgba(255,59,48,0.4)' },
+  dismissalBtnActive: { backgroundColor: colors.errorDim, borderColor: 'rgba(186,26,26,0.4)' },
   dismissalText: { color: colors.textSecondary, fontWeight: '600', fontSize: 14 },
   dismissalTextActive: { color: colors.error },
   confirmBtn: { backgroundColor: colors.error, borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginBottom: 4 },

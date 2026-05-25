@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { updateMatch } from '../services/matchService';
 import { colors } from '../utils/constants';
 
@@ -232,14 +233,17 @@ export default function InningsBreakScreen({ route, navigation }) {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Innings header */}
-        <View style={styles.inningsHeader}>
-          <Text style={styles.inningsTeam}>{battingTeam}</Text>
-          <Text style={styles.inningsScore}>{inningsData.runs}/{inningsData.wickets}</Text>
-          <Text style={styles.inningsOvers}>({inningsData.overs} ov){declared ? ' — Declared' : ''}</Text>
-        </View>
+        {/* Innings header — dark emerald gradient */}
+        <LinearGradient colors={['#002419', '#003527']} style={styles.inningsHeader}>
+          <SafeAreaView edges={['top']} style={styles.inningsHeaderInner}>
+            <Text style={styles.inningsTeam}>{battingTeam}</Text>
+            <Text style={styles.inningsScore}>{inningsData.runs}/{inningsData.wickets}</Text>
+            <Text style={styles.inningsOvers}>({inningsData.overs} ov){declared ? ' — Declared' : ''}</Text>
+          </SafeAreaView>
+        </LinearGradient>
 
         {/* Target banner — TEST inn3→4 or limited-overs inn1→2, but NOT TEST inn1→2 */}
         {!isInningsVictory && (inningsNumber === 3 || (inningsNumber === 1 && matchType !== 'TEST')) && (
@@ -290,18 +294,24 @@ export default function InningsBreakScreen({ route, navigation }) {
             </Text>
             <View style={styles.followOnBtns}>
               <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: colors.warning }]}
+                style={[styles.actionBtnOuter, { marginBottom: 0 }]}
                 onPress={() => startNextInnings(true)}
                 disabled={loading}
+                activeOpacity={0.88}
               >
-                <Text style={[styles.actionBtnText, { color: '#FFFFFF' }]}>Enforce Follow-on</Text>
+                <View style={[styles.actionBtn, { backgroundColor: colors.warning }]}>
+                  <Text style={styles.actionBtnText}>Enforce Follow-on</Text>
+                </View>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.actionBtn}
+                style={styles.actionBtnOuter}
                 onPress={() => startNextInnings(false)}
                 disabled={loading}
+                activeOpacity={0.88}
               >
-                {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.actionBtnText}>Continue Normally</Text>}
+                <LinearGradient colors={['#003527', '#064e3b']} start={{x:0,y:0}} end={{x:1,y:0}} style={styles.actionBtn}>
+                  {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.actionBtnText}>Continue Normally</Text>}
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           </View>
@@ -310,18 +320,16 @@ export default function InningsBreakScreen({ route, navigation }) {
         {/* Action Buttons */}
         {!canFollowOn && !isInningsVictory && (
           <>
-            <TouchableOpacity
-              style={styles.startButton}
-              onPress={() => startNextInnings(false)}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.startButtonText}>
-                  {matchType === 'TEST' ? `Start Innings ${inningsNumber + 1}` : 'Start 2nd Innings'}
-                </Text>
-              )}
+            <TouchableOpacity style={styles.startButtonOuter} onPress={() => startNextInnings(false)} disabled={loading} activeOpacity={0.88}>
+              <LinearGradient colors={['#003527', '#064e3b']} start={{x:0,y:0}} end={{x:1,y:0}} style={styles.startButton}>
+                {loading ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.startButtonText}>
+                    {matchType === 'TEST' ? `Start Innings ${inningsNumber + 1}` : 'Start 2nd Innings'}
+                  </Text>
+                )}
+              </LinearGradient>
             </TouchableOpacity>
 
             {matchType === 'TEST' && (
@@ -334,50 +342,102 @@ export default function InningsBreakScreen({ route, navigation }) {
 
         {/* Innings victory — end match */}
         {isInningsVictory && (
-          <TouchableOpacity style={styles.startButton} onPress={endMatchInningsVictory} disabled={loading}>
-            {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.startButtonText}>End Match</Text>}
+          <TouchableOpacity style={styles.startButtonOuter} onPress={endMatchInningsVictory} disabled={loading} activeOpacity={0.88}>
+            <LinearGradient colors={['#003527', '#064e3b']} start={{x:0,y:0}} end={{x:1,y:0}} style={styles.startButton}>
+              {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.startButtonText}>End Match</Text>}
+            </LinearGradient>
           </TouchableOpacity>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 20, gap: 16, paddingBottom: 40 },
-  inningsHeader: {
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: 16, padding: 24, alignItems: 'center',
-    borderWidth: 1, borderColor: colors.border,
+  content: { gap: 16, paddingBottom: 40 },
+
+  // Gradient innings header
+  inningsHeader: {},
+  inningsHeaderInner: {
+    paddingHorizontal: 24,
+    paddingTop: 4,
+    paddingBottom: 28,
+    alignItems: 'center',
   },
-  inningsTeam: { color: colors.textMuted, fontSize: 12, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 6 },
-  inningsScore: { color: colors.textPrimary, fontSize: 44, fontWeight: '800', letterSpacing: -1.5 },
-  inningsOvers: { color: colors.textSecondary, fontSize: 14, marginTop: 4 },
+  inningsTeam: { color: colors.primaryFixedDim, fontSize: 11, fontWeight: '700', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 },
+  inningsScore: { color: '#ffffff', fontSize: 52, fontWeight: '800', letterSpacing: -2 },
+  inningsOvers: { color: 'rgba(255,255,255,0.65)', fontSize: 14, marginTop: 4 },
+
+  // Target / lead banners
   targetBanner: {
     backgroundColor: colors.accentDim,
-    borderRadius: 16, padding: 24, alignItems: 'center',
+    borderRadius: 20, padding: 24, alignItems: 'center',
     borderWidth: 1, borderColor: colors.accentMed,
+    marginHorizontal: 16,
   },
   targetLabel: { color: colors.accent, fontSize: 11, fontWeight: '700', letterSpacing: 1.5, textTransform: 'uppercase' },
-  targetNum: { color: colors.accent, fontSize: 56, fontWeight: '800', marginVertical: 4, letterSpacing: -2 },
+  targetNum: { color: colors.accent, fontSize: 60, fontWeight: '800', marginVertical: 4, letterSpacing: -2 },
   targetSub: { color: colors.textSecondary, fontSize: 14 },
-  section: { backgroundColor: colors.surfaceElevated, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: colors.border },
-  sectionTitle: { color: colors.accent, fontSize: 11, fontWeight: '700', letterSpacing: 0.8, marginBottom: 12, textTransform: 'uppercase' },
-  subTitle: { color: colors.textSecondary, fontSize: 11, fontWeight: '700', marginBottom: 8, letterSpacing: 0.3, textTransform: 'uppercase' },
+
+  // Scorecard section
+  section: {
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+  sectionTitle: { color: colors.primary, fontSize: 11, fontWeight: '700', letterSpacing: 0.8, marginBottom: 12, textTransform: 'uppercase' },
+  subTitle: { color: colors.textMuted, fontSize: 11, fontWeight: '700', marginBottom: 8, letterSpacing: 0.5, textTransform: 'uppercase' },
   tableHeader: { flexDirection: 'row', marginBottom: 4 },
-  tableRow: { flexDirection: 'row', paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: colors.border },
-  th: { flex: 1, color: colors.textMuted, fontSize: 11, textAlign: 'center', fontWeight: '600' },
+  tableRow: { flexDirection: 'row', paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: colors.border },
+  th: { flex: 1, color: colors.textMuted, fontSize: 11, textAlign: 'center', fontWeight: '700' },
   thWide: { flex: 3, textAlign: 'left' },
   td: { flex: 1, color: colors.textSecondary, fontSize: 13, textAlign: 'center' },
-  followOnBox: { backgroundColor: colors.warningDim, borderRadius: 14, padding: 18, borderWidth: 1, borderColor: 'rgba(255,214,10,0.25)' },
+
+  // Follow-on
+  followOnBox: {
+    backgroundColor: colors.warningDim,
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(194,124,0,0.2)',
+    marginHorizontal: 16,
+  },
   followOnTitle: { color: colors.warning, fontSize: 17, fontWeight: '700', textAlign: 'center', marginBottom: 4 },
   followOnSub: { color: colors.textSecondary, fontSize: 13, textAlign: 'center', marginBottom: 16 },
   followOnBtns: { gap: 10 },
-  actionBtn: { backgroundColor: colors.accent, borderRadius: 12, paddingVertical: 15, alignItems: 'center' },
+  actionBtnOuter: { borderRadius: 12, overflow: 'hidden' },
+  actionBtn: { paddingVertical: 15, alignItems: 'center' },
   actionBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 15 },
-  startButton: { backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 18, alignItems: 'center' },
+
+  // Primary action button
+  startButtonOuter: {
+    marginHorizontal: 16,
+    borderRadius: 14,
+    overflow: 'hidden',
+    shadowColor: '#003527',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.28,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  startButton: { paddingVertical: 18, alignItems: 'center' },
   startButtonText: { color: '#FFFFFF', fontWeight: '700', fontSize: 17 },
-  drawButton: { borderRadius: 14, paddingVertical: 15, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
+  drawButton: {
+    borderRadius: 14,
+    paddingVertical: 15,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    marginHorizontal: 16,
+  },
   drawButtonText: { color: colors.textMuted, fontSize: 15 },
 });

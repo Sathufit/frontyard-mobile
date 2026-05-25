@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
-  ScrollView, Alert,
+  ScrollView, Alert, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors, OVERS_OPTIONS } from '../utils/constants';
 
 export default function CreateMatchScreen({ navigation }) {
@@ -14,6 +15,7 @@ export default function CreateMatchScreen({ navigation }) {
   const [isCustomOvers, setIsCustomOvers] = useState(false);
   const [teamA, setTeamA] = useState('Frontyard');
   const [teamB, setTeamB] = useState('');
+  const [focusedField, setFocusedField] = useState(null);
 
   function handleNext() {
     if (!matchName.trim()) { Alert.alert('Error', 'Please enter a match name.'); return; }
@@ -38,16 +40,26 @@ export default function CreateMatchScreen({ navigation }) {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      <LinearGradient colors={['#002419', '#003527']} style={styles.header}>
+        <SafeAreaView edges={['top']} style={styles.headerInner}>
+          <Text style={styles.headerLabel}>NEW MATCH</Text>
+          <Text style={styles.headerTitle}>Setup</Text>
+        </SafeAreaView>
+      </LinearGradient>
+
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
 
         <Text style={styles.label}>Match Name</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, focusedField === 'name' && styles.inputFocused]}
           value={matchName}
           onChangeText={setMatchName}
-          placeholder="e.g. Frontyard vs Rivals - 2026-04-30"
+          placeholder="e.g. Frontyard vs Rivals – Apr 30"
           placeholderTextColor={colors.textMuted}
+          onFocus={() => setFocusedField('name')}
+          onBlur={() => setFocusedField(null)}
         />
 
         <Text style={styles.label}>Match Type</Text>
@@ -58,9 +70,17 @@ export default function CreateMatchScreen({ navigation }) {
               style={[styles.toggleBtn, matchType === type && styles.toggleBtnActive]}
               onPress={() => setMatchType(type)}
             >
-              <Text style={[styles.toggleText, matchType === type && styles.toggleTextActive]}>
-                {type === 'LIMITED_OVERS' ? 'Limited Overs' : 'Test Match'}
-              </Text>
+              {matchType === type ? (
+                <LinearGradient colors={['#003527', '#064e3b']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.toggleBtnGradient}>
+                  <Text style={styles.toggleTextActive}>
+                    {type === 'LIMITED_OVERS' ? 'Limited Overs' : 'Test Match'}
+                  </Text>
+                </LinearGradient>
+              ) : (
+                <Text style={styles.toggleText}>
+                  {type === 'LIMITED_OVERS' ? 'Limited Overs' : 'Test Match'}
+                </Text>
+              )}
             </TouchableOpacity>
           ))}
         </View>
@@ -89,12 +109,14 @@ export default function CreateMatchScreen({ navigation }) {
             </View>
             {isCustomOvers && (
               <TextInput
-                style={styles.input}
+                style={[styles.input, focusedField === 'overs' && styles.inputFocused]}
                 value={customOvers}
                 onChangeText={setCustomOvers}
                 placeholder="Enter number of overs"
                 placeholderTextColor={colors.textMuted}
                 keyboardType="number-pad"
+                onFocus={() => setFocusedField('overs')}
+                onBlur={() => setFocusedField(null)}
               />
             )}
           </>
@@ -102,75 +124,123 @@ export default function CreateMatchScreen({ navigation }) {
 
         <Text style={styles.label}>Team A</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, focusedField === 'teamA' && styles.inputFocused]}
           value={teamA}
           onChangeText={setTeamA}
           placeholder="Team A name"
           placeholderTextColor={colors.textMuted}
+          onFocus={() => setFocusedField('teamA')}
+          onBlur={() => setFocusedField(null)}
         />
 
         <Text style={styles.label}>Team B</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, focusedField === 'teamB' && styles.inputFocused]}
           value={teamB}
           onChangeText={setTeamB}
           placeholder="Team B name"
           placeholderTextColor={colors.textMuted}
+          onFocus={() => setFocusedField('teamB')}
+          onBlur={() => setFocusedField(null)}
         />
 
-        <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-          <Text style={styles.nextButtonText}>Next →</Text>
+        <TouchableOpacity style={styles.nextButtonOuter} onPress={handleNext} activeOpacity={0.88}>
+          <LinearGradient
+            colors={['#003527', '#064e3b']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.nextButton}
+          >
+            <Text style={styles.nextButtonText}>Next →</Text>
+          </LinearGradient>
         </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 20, gap: 8, paddingBottom: 40 },
+  header: { paddingBottom: 24 },
+  headerInner: { paddingHorizontal: 24, paddingTop: 4 },
+  headerLabel: {
+    color: colors.primaryFixedDim,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  headerTitle: { color: '#ffffff', fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
+  content: { padding: 20, paddingBottom: 48 },
   label: {
     color: colors.textSecondary,
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.8,
-    marginTop: 16,
+    marginTop: 20,
     marginBottom: 8,
     textTransform: 'uppercase',
   },
   input: {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.surface,
     borderColor: colors.border,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     color: colors.textPrimary,
     fontSize: 15,
   },
-  toggleRow: { flexDirection: 'row', gap: 8, backgroundColor: colors.surface, borderRadius: 12, padding: 3 },
-  toggleBtn: {
-    flex: 1, paddingVertical: 11, alignItems: 'center',
-    borderRadius: 10,
+  inputFocused: { borderColor: colors.primary, borderWidth: 2 },
+  toggleRow: {
+    flexDirection: 'row',
+    gap: 8,
+    backgroundColor: colors.surfaceContainer,
+    borderRadius: 14,
+    padding: 4,
   },
-  toggleBtnActive: { backgroundColor: colors.surfaceElevated },
-  toggleText: { color: colors.textMuted, fontWeight: '600', fontSize: 14 },
-  toggleTextActive: { color: colors.textPrimary },
+  toggleBtn: {
+    flex: 1,
+    borderRadius: 11,
+    overflow: 'hidden',
+  },
+  toggleBtnActive: {},
+  toggleBtnGradient: {
+    paddingVertical: 11,
+    alignItems: 'center',
+  },
+  toggleText: {
+    color: colors.textMuted,
+    fontWeight: '600',
+    fontSize: 14,
+    paddingVertical: 11,
+    textAlign: 'center',
+  },
+  toggleTextActive: { color: '#ffffff', fontWeight: '700', fontSize: 14 },
   oversGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   oversBtn: {
-    paddingHorizontal: 20, paddingVertical: 11,
-    borderRadius: 10, borderWidth: 1, borderColor: colors.border,
-    backgroundColor: colors.surfaceElevated,
+    paddingHorizontal: 20,
+    paddingVertical: 11,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
-  oversBtnActive: { backgroundColor: colors.accentDim, borderColor: colors.accentMed },
+  oversBtnActive: { backgroundColor: colors.accentDim, borderColor: colors.primary },
   oversBtnText: { color: colors.textSecondary, fontWeight: '600', fontSize: 14 },
-  oversBtnTextActive: { color: colors.accent, fontWeight: '700' },
-  nextButton: {
-    backgroundColor: colors.accent,
+  oversBtnTextActive: { color: colors.primary, fontWeight: '700' },
+  nextButtonOuter: {
+    marginTop: 32,
     borderRadius: 14,
-    paddingVertical: 18,
-    alignItems: 'center',
-    marginTop: 28,
+    overflow: 'hidden',
+    shadowColor: '#003527',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.28,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  nextButtonText: { color: '#FFFFFF', fontWeight: '700', fontSize: 16, letterSpacing: 0.2 },
+  nextButton: { paddingVertical: 18, alignItems: 'center' },
+  nextButtonText: { color: '#ffffff', fontWeight: '700', fontSize: 16, letterSpacing: 0.2 },
 });
+

@@ -93,6 +93,7 @@ function MatchCard({ match, onPress, onDelete, index }) {
         {/* Lead trail */}
         {match.leadTrail ? (
           <View style={styles.leadRow}>
+            {!finished && <View style={styles.leadAccentBar} />}
             <Text style={[styles.leadTrail, finished && styles.leadTrailFinished]} numberOfLines={2}>
               {match.leadTrail}
             </Text>
@@ -212,59 +213,109 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
 
-  segmentWrapper: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
-  segment: { flexDirection: 'row', backgroundColor: colors.surface, borderRadius: 12, padding: 3 },
+  // Segmented control
+  segmentWrapper: {
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 10,
+    backgroundColor: colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  segment: {
+    flexDirection: 'row',
+    backgroundColor: colors.surfaceContainer,
+    borderRadius: 12,
+    padding: 3,
+  },
   segTab: { flex: 1, paddingVertical: 9, alignItems: 'center', borderRadius: 10 },
-  segTabActive: { backgroundColor: colors.surfaceElevated },
+  segTabActive: {
+    backgroundColor: colors.surface,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
   segTabText: { color: colors.textMuted, fontWeight: '600', fontSize: 13, letterSpacing: 0.3 },
-  segTabTextActive: { color: colors.textPrimary },
+  segTabTextActive: { color: colors.textPrimary, fontWeight: '700' },
 
-  list: { padding: 16, gap: 10, paddingBottom: 32 },
+  list: { padding: 16, gap: 12, paddingBottom: 40 },
 
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
-  emptyIcon: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  emptyIconText: { color: colors.textMuted, fontSize: 22, fontWeight: '600' },
-  emptyTitle: { color: colors.textSecondary, fontSize: 16, fontWeight: '600', marginBottom: 6, textAlign: 'center' },
-  emptySubtitle: { color: colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 19 },
+  emptyIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.surfaceContainer,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 18,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  emptyIconText: { color: colors.textMuted, fontSize: 24, fontWeight: '600' },
+  emptyTitle: { color: colors.textSecondary, fontSize: 17, fontWeight: '700', marginBottom: 8, textAlign: 'center' },
+  emptySubtitle: { color: colors.textMuted, fontSize: 14, textAlign: 'center', lineHeight: 20 },
 
+  // Match card — Elite Pitch level 2
   card: {
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: 20,
     padding: 18,
     borderWidth: 1,
     borderColor: colors.border,
-    gap: 8,
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 2,
   },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  matchTitle: { color: colors.textSecondary, fontWeight: '500', fontSize: 13, flex: 1, marginRight: 10 },
+  matchTitle: { color: colors.textMuted, fontWeight: '500', fontSize: 12, flex: 1, marginRight: 10, letterSpacing: 0.2 },
 
-  badge: { flexDirection: 'row', alignItems: 'center', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, gap: 5 },
-  badgeLive: { backgroundColor: colors.errorDim, borderWidth: 1, borderColor: 'rgba(217,48,37,0.25)' },
-  badgeFinished: { backgroundColor: colors.surface },
-  badgeText: { fontSize: 10, fontWeight: '700', letterSpacing: 0.8 },
-  badgeTextLive: { color: colors.error },
+  // Badges
+  badge: { flexDirection: 'row', alignItems: 'center', borderRadius: 8, paddingHorizontal: 9, paddingVertical: 5, gap: 5 },
+  badgeLive: { backgroundColor: colors.primary, borderWidth: 0 },
+  badgeFinished: { backgroundColor: colors.surfaceContainer, borderWidth: 1, borderColor: colors.border },
+  badgeText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.8 },
+  badgeTextLive: { color: '#ffffff' },
   badgeTextFinished: { color: colors.textMuted },
   liveDotWrapper: { width: 8, height: 8, alignItems: 'center', justifyContent: 'center' },
-  liveDotBg: { position: 'absolute', width: 8, height: 8, borderRadius: 4, backgroundColor: colors.error },
-  liveDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: colors.error },
+  liveDotBg: { position: 'absolute', width: 8, height: 8, borderRadius: 4, backgroundColor: '#80ffcc' },
+  liveDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#80ffcc' },
 
+  // Teams row
   teamsRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  teamName: { color: colors.textPrimary, fontSize: 17, fontWeight: '700', flex: 1 },
+  teamName: { color: colors.textPrimary, fontSize: 18, fontWeight: '700', flex: 1, letterSpacing: -0.3 },
   teamRight: { textAlign: 'right' },
-  vsText: { color: colors.textMuted, fontSize: 12, fontWeight: '600' },
+  vsText: { color: colors.textMuted, fontSize: 11, fontWeight: '600', backgroundColor: colors.surfaceContainer, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 4 },
 
-  scoreText: { color: colors.textPrimary, fontSize: 26, fontWeight: '800', letterSpacing: -0.5 },
-  detailText: { color: colors.textSecondary, fontSize: 13 },
+  scoreText: { color: colors.primary, fontSize: 28, fontWeight: '800', letterSpacing: -0.8 },
+  detailText: { color: colors.textSecondary, fontSize: 13, letterSpacing: 0.1 },
 
-  leadRow: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 8, marginTop: 2 },
-  leadTrail: { color: colors.accent, fontSize: 13, fontWeight: '500' },
-  leadTrailFinished: { color: colors.success },
+  leadRow: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: 10,
+    marginTop: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  leadAccentBar: { width: 3, height: 14, borderRadius: 2, backgroundColor: colors.accent },
+  leadTrail: { color: colors.primary, fontSize: 13, fontWeight: '600', flex: 1 },
+  leadTrailFinished: { color: colors.textSecondary, fontWeight: '500' },
 
   deleteAction: {
-    width: 80, justifyContent: 'center', alignItems: 'center',
-    backgroundColor: colors.error, borderRadius: 16,
-    marginLeft: 8,
+    width: 88,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.error,
+    borderRadius: 20,
+    marginLeft: 10,
   },
   deleteActionIcon: { fontSize: 20 },
-  deleteActionLabel: { color: '#FFFFFF', fontSize: 11, fontWeight: '700', marginTop: 2 },
+  deleteActionLabel: { color: '#FFFFFF', fontSize: 10, fontWeight: '700', marginTop: 3 },
 });

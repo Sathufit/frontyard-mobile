@@ -25,9 +25,13 @@ const AdminStack = createStackNavigator();
 const NewMatchStack = createStackNavigator();
 
 const screenOptions = {
-  headerStyle: { backgroundColor: colors.surface, shadowOpacity: 0, elevation: 0, borderBottomWidth: 1, borderBottomColor: colors.border },
-  headerTintColor: colors.textPrimary,
-  headerTitleStyle: { color: colors.textPrimary, fontWeight: '600', fontSize: 16 },
+  headerStyle: {
+    backgroundColor: colors.surface,
+    shadowOpacity: 0, elevation: 0,
+    borderBottomWidth: 1, borderBottomColor: colors.border,
+  },
+  headerTintColor: colors.primary,
+  headerTitleStyle: { color: colors.textPrimary, fontWeight: '700', fontSize: 16 },
   headerBackTitleVisible: false,
 };
 
@@ -42,9 +46,9 @@ function TabIcon({ label, active }) {
 
 const tabIconStyles = StyleSheet.create({
   wrapper: { alignItems: 'center', justifyContent: 'center', paddingTop: 2, width: 72 },
-  label: { fontSize: 10, fontWeight: '600', color: colors.textMuted, letterSpacing: 0.1 },
-  labelActive: { color: colors.accent },
-  indicator: { width: 4, height: 4, borderRadius: 2, backgroundColor: colors.accent, marginTop: 3 },
+  label: { fontSize: 10, fontWeight: '600', color: colors.textMuted, letterSpacing: 0.5 },
+  labelActive: { color: colors.primary, fontWeight: '800' },
+  indicator: { width: 28, height: 3, borderRadius: 2, backgroundColor: colors.primary, marginTop: 4 },
 });
 
 function NewMatchStackNavigator() {
@@ -102,6 +106,11 @@ function MainTabs() {
           height: tabBarHeight,
           paddingBottom: insets.bottom || 8,
           paddingTop: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.04,
+          shadowRadius: 8,
+          elevation: 8,
         },
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.textMuted,

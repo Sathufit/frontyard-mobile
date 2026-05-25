@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Animated, Alert,
+  View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Animated, Alert, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { subscribeToMatch } from '../services/matchService';
 import { colors } from '../utils/constants';
 import { useAuth } from '../context/AuthContext';
@@ -388,19 +389,24 @@ export default function WatchMatchScreen({ route, navigation }) {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
-      {/* Score Header */}
-      <View style={styles.scoreHeader}>
-        <Text style={styles.scoreTitle}>{match.battingCardTitle}</Text>
-        <Text style={styles.scoreBig}>{match.score}</Text>
-        <Text style={styles.scoreDetail}>{match.overs}  {match.runRate}</Text>
-        {match.leadTrail ? <Text style={styles.leadTrail}>{match.leadTrail}</Text> : null}
-      </View>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      {/* Score Header — dark emerald gradient */}
+      <LinearGradient colors={['#002419', '#003527', '#064e3b']} style={styles.scoreHeader}>
+        <SafeAreaView edges={['top']} style={styles.scoreHeaderInner}>
+          <Text style={styles.scoreTitle}>{match.battingCardTitle}</Text>
+          <Text style={styles.scoreBig}>{match.score}</Text>
+          <Text style={styles.scoreDetail}>{match.overs}  {match.runRate}</Text>
+          {match.leadTrail ? <Text style={styles.leadTrail}>{match.leadTrail}</Text> : null}
+        </SafeAreaView>
+      </LinearGradient>
 
       {/* Resume Scoring — shown when match is still live */}
       {isLive && (
-        <TouchableOpacity style={styles.resumeBtn} onPress={handleResumeScoring} activeOpacity={0.8}>
-          <Text style={styles.resumeBtnText}>Resume Scoring</Text>
+        <TouchableOpacity style={styles.resumeBtnOuter} onPress={handleResumeScoring} activeOpacity={0.88}>
+          <LinearGradient colors={['#003527', '#064e3b']} start={{x:0,y:0}} end={{x:1,y:0}} style={styles.resumeBtn}>
+            <Text style={styles.resumeBtnText}>▶ Resume Scoring</Text>
+          </LinearGradient>
         </TouchableOpacity>
       )}
 
@@ -508,7 +514,7 @@ export default function WatchMatchScreen({ route, navigation }) {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -524,35 +530,34 @@ function InfoRow({ label, value }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   loading: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' },
-  scoreHeader: {
-    backgroundColor: colors.surfaceElevated,
+  scoreHeader: {},
+  scoreHeaderInner: {
     paddingHorizontal: 20,
-    paddingVertical: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    paddingTop: 4,
+    paddingBottom: 20,
   },
-  scoreTitle: { color: colors.textMuted, fontSize: 12, fontWeight: '600', letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 4 },
-  scoreBig: { color: colors.textPrimary, fontSize: 38, fontWeight: '800', letterSpacing: -1, marginTop: 2 },
-  scoreDetail: { color: colors.textSecondary, fontSize: 13, marginTop: 4 },
-  leadTrail: { color: colors.accent, fontSize: 14, marginTop: 6, fontWeight: '500' },
-  tabBar: { borderBottomWidth: 1, borderBottomColor: colors.border, flexGrow: 0, backgroundColor: colors.surfaceElevated },
+  scoreTitle: { color: colors.primaryFixedDim, fontSize: 11, fontWeight: '700', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 },
+  scoreBig: { color: '#ffffff', fontSize: 44, fontWeight: '800', letterSpacing: -1.5, marginTop: 2 },
+  scoreDetail: { color: 'rgba(255,255,255,0.65)', fontSize: 13, marginTop: 4 },
+  leadTrail: { color: colors.primaryFixed, fontSize: 14, marginTop: 6, fontWeight: '600' },
+  tabBar: { borderBottomWidth: 1, borderBottomColor: colors.border, flexGrow: 0, backgroundColor: colors.surface },
   tab: { paddingHorizontal: 18, paddingVertical: 13 },
-  tabActive: { borderBottomWidth: 2, borderBottomColor: colors.accent },
+  tabActive: { borderBottomWidth: 3, borderBottomColor: colors.primary },
   tabText: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
-  tabTextActive: { color: colors.accent },
+  tabTextActive: { color: colors.primary, fontWeight: '700' },
   content: { flex: 1 },
-  sectionTitle: { color: colors.accent, fontSize: 11, fontWeight: '700', letterSpacing: 0.8, marginBottom: 12, textTransform: 'uppercase' },
+  sectionTitle: { color: colors.primary, fontSize: 11, fontWeight: '700', letterSpacing: 0.8, marginBottom: 12, textTransform: 'uppercase' },
   inningsLabel: { color: colors.textPrimary, fontSize: 15, fontWeight: '700', marginBottom: 4 },
   inningsScore: { color: colors.textSecondary, fontSize: 14, fontWeight: '600' },
-  tableRow: { flexDirection: 'row', paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: colors.border },
+  tableRow: { flexDirection: 'row', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
   tableHeader: { borderBottomColor: colors.borderStrong },
-  tableHeaderText: { color: colors.textMuted, fontWeight: '600', fontSize: 11 },
+  tableHeaderText: { color: colors.textMuted, fontWeight: '700', fontSize: 11, letterSpacing: 0.5 },
   tableCell: { flex: 1, color: colors.textPrimary, fontSize: 13, textAlign: 'center' },
   tableCellWide: { flex: 3, textAlign: 'left' },
   outLabel: { color: colors.textMuted, fontSize: 11 },
   ballRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   ballCircle: {
-    width: 36, height: 36, borderRadius: 18,
+    width: 38, height: 38, borderRadius: 19,
     alignItems: 'center', justifyContent: 'center',
   },
   ballLabel: { color: '#fff', fontWeight: '700', fontSize: 11 },
@@ -562,59 +567,85 @@ const styles = StyleSheet.create({
   infoLabel: { color: colors.textMuted, fontSize: 13 },
   infoValue: { color: colors.textPrimary, fontSize: 13, fontWeight: '600', flex: 1, textAlign: 'right' },
   playerItem: { color: colors.textSecondary, fontSize: 13, paddingVertical: 3 },
-  resumeBtn: {
-    marginHorizontal: 16, marginVertical: 10, backgroundColor: colors.accent,
-    borderRadius: 12, paddingVertical: 13, alignItems: 'center',
+  resumeBtnOuter: {
+    marginHorizontal: 16,
+    marginVertical: 10,
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#003527',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
+  resumeBtn: { paddingVertical: 14, alignItems: 'center' },
   resumeBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 15 },
 });
 
 const aStyles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surfaceElevated, borderRadius: 16,
-    padding: 16, borderWidth: 1, borderColor: colors.border,
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
   },
-  cardTitle: { color: colors.accent, fontSize: 11, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 4 },
+  cardTitle: { color: colors.primary, fontSize: 11, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 4 },
   cardSubtitle: { color: colors.textMuted, fontSize: 12, marginBottom: 14 },
   statsRow: { flexDirection: 'row', gap: 10 },
   statBox: {
-    flex: 1, backgroundColor: colors.surfaceElevated, borderRadius: 12,
-    padding: 14, alignItems: 'center', borderWidth: 1, borderColor: colors.border,
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    padding: 14,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
   },
-  statVal: { color: colors.textPrimary, fontSize: 22, fontWeight: '800', letterSpacing: -0.5 },
+  statVal: { color: colors.textPrimary, fontSize: 24, fontWeight: '800', letterSpacing: -0.5 },
   statLbl: { color: colors.textMuted, fontSize: 11, fontWeight: '600', marginTop: 2, letterSpacing: 0.3 },
   winProbTeams: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8 },
   winTeam: { flex: 1, fontSize: 13, fontWeight: '700' },
   winProbPctBox: { alignItems: 'center' },
-  winPct: { fontSize: 28, fontWeight: '800', letterSpacing: -1 },
-  winBar: { height: 10, borderRadius: 6, backgroundColor: colors.background, overflow: 'hidden', flexDirection: 'row' },
-  winBarFill: { height: 10, borderRadius: 6 },
-  winBarRight: { flex: 1, height: 10 },
+  winPct: { fontSize: 32, fontWeight: '800', letterSpacing: -1 },
+  winBar: { height: 12, borderRadius: 8, backgroundColor: colors.surfaceContainer, overflow: 'hidden', flexDirection: 'row' },
+  winBarFill: { height: 12, borderRadius: 8 },
+  winBarRight: { flex: 1, height: 12 },
   winBarLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
   winBarPct: { fontSize: 12, fontWeight: '600' },
   chartScroll: { paddingBottom: 4, gap: 6, alignItems: 'flex-end', minHeight: 120 },
-  barCol: { alignItems: 'center', width: 38 },
+  barCol: { alignItems: 'center', width: 40 },
   barRunVal: { color: colors.textMuted, fontSize: 10, fontWeight: '600', marginBottom: 4 },
-  barBlock: { width: 22, borderRadius: 4 },
+  barBlock: { width: 24, borderRadius: 6 },
   barOverLbl: { color: colors.textMuted, fontSize: 10, marginTop: 4, fontWeight: '600' },
   chartLegend: { flexDirection: 'row', gap: 12, marginBottom: 12 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   legendDot: { width: 8, height: 8, borderRadius: 4 },
   legendText: { color: colors.textMuted, fontSize: 11 },
   performerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  performerBadge: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  performerBadge: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   performerIcon: { fontSize: 20 },
   performerName: { color: colors.textPrimary, fontSize: 15, fontWeight: '700' },
   performerRole: { color: colors.textMuted, fontSize: 11, marginTop: 1 },
-  performerStat: { color: colors.textPrimary, fontSize: 18, fontWeight: '800' },
+  performerStat: { color: colors.textPrimary, fontSize: 20, fontWeight: '800' },
   performerUnit: { fontSize: 13, fontWeight: '500', color: colors.textSecondary },
   performerMeta: { color: colors.textMuted, fontSize: 11, marginTop: 1 },
-  divider: { height: 1, backgroundColor: colors.border, marginVertical: 12 },
+  divider: { height: 1, backgroundColor: colors.border, marginVertical: 14 },
   batterBar: { gap: 4 },
   batterBarHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   batterBarName: { color: colors.textPrimary, fontSize: 13, fontWeight: '600' },
   batterBarSR: { fontSize: 12, fontWeight: '600' },
-  batterBarTrack: { height: 8, backgroundColor: colors.background, borderRadius: 4, overflow: 'hidden' },
+  batterBarTrack: { height: 8, backgroundColor: colors.surfaceContainer, borderRadius: 4, overflow: 'hidden' },
   batterBarFill: { height: 8, borderRadius: 4 },
   batterBarFooter: { flexDirection: 'row', justifyContent: 'space-between' },
   batterBarRuns: { color: colors.textSecondary, fontSize: 12, fontWeight: '600' },
@@ -622,7 +653,7 @@ const aStyles = StyleSheet.create({
   bowlerRow: { gap: 6 },
   bowlerName: { color: colors.textPrimary, fontSize: 13, fontWeight: '700' },
   bowlerStats: { flexDirection: 'row', gap: 8 },
-  bowlerStat: { flex: 1, alignItems: 'center', backgroundColor: colors.background, borderRadius: 8, paddingVertical: 8 },
-  bowlerStatVal: { color: colors.textPrimary, fontSize: 16, fontWeight: '800' },
+  bowlerStat: { flex: 1, alignItems: 'center', backgroundColor: colors.surfaceContainerLow, borderRadius: 10, paddingVertical: 8 },
+  bowlerStatVal: { color: colors.textPrimary, fontSize: 17, fontWeight: '800' },
   bowlerStatLbl: { color: colors.textMuted, fontSize: 10, fontWeight: '600', letterSpacing: 0.3 },
 });
