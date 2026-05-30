@@ -702,8 +702,8 @@ export default function ScoringScreen({ route, navigation }) {
       </LinearGradient>
 
       <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
-          {/* Players Panel */}
-          <View style={styles.playersPanel}>
+        {/* Players Panel */}
+        <View style={styles.playersPanel}>
             {/* Striker */}
             <TouchableOpacity
               style={styles.playerRow}
@@ -834,6 +834,66 @@ export default function ScoringScreen({ route, navigation }) {
             <Text style={styles.undoBtnText}>↩ Undo Last Ball</Text>
           </TouchableOpacity>
 
+
+          {/* --- Live Batting Table --- */}
+          <View style={styles.liveTableCard}>
+            <Text style={styles.liveTableTitle}>Batting</Text>
+            <View style={styles.tableHeaderRow}>
+              {['Batter', 'R', 'B', '4s', '6s', 'SR'].map((h) => (
+                <Text key={h} style={[styles.tableHeader, h === 'Batter' && styles.tableHeaderWide]}>{h}</Text>
+              ))}
+            </View>
+            {(state.batterStats || []).map((b) => (
+              <View key={b.name} style={styles.tableRow}>
+                <Text style={[styles.tableCell, styles.tableHeaderWide]}>{b.name}{!b.isOut ? '*' : ''}</Text>
+                <Text style={styles.tableCell}>{b.runs}</Text>
+                <Text style={styles.tableCell}>{b.ballsFaced}</Text>
+                <Text style={styles.tableCell}>{b.fours}</Text>
+                <Text style={styles.tableCell}>{b.sixes}</Text>
+                <Text style={styles.tableCell}>{b.strikeRate}</Text>
+              </View>
+            ))}
+          </View>
+
+          {/* --- Live Bowling Table --- */}
+          <View style={styles.liveTableCard}>
+            <Text style={styles.liveTableTitle}>Bowling</Text>
+            <View style={styles.tableHeaderRow}>
+              {['Bowler', 'O', 'R', 'W', 'Econ'].map((h) => (
+                <Text key={h} style={[styles.tableHeader, h === 'Bowler' && styles.tableHeaderWide]}>{h}</Text>
+              ))}
+            </View>
+            {(state.bowlerStats || []).map((b) => (
+              <View key={b.name} style={styles.tableRow}>
+                <Text style={[styles.tableCell, styles.tableHeaderWide]}>{b.name}</Text>
+                <Text style={styles.tableCell}>{b.overs}</Text>
+                <Text style={styles.tableCell}>{b.runs}</Text>
+                <Text style={styles.tableCell}>{b.wickets}</Text>
+                <Text style={styles.tableCell}>{b.economy}</Text>
+              </View>
+            ))}
+          </View>
+
+          {/* --- Winning Prediction Stats --- */}
+          <View style={styles.liveTableCard}>
+            <Text style={styles.liveTableTitle}>Winning Prediction</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 18, marginTop: 6 }}>
+              {isChasingInnings && match.target ? (
+                <>
+                  <Text style={styles.predictionStat}>Runs Needed: <Text style={styles.predictionValue}>{runsNeeded}</Text></Text>
+                  <Text style={styles.predictionStat}>Balls Left: <Text style={styles.predictionValue}>{ballsRemaining}</Text></Text>
+                  <Text style={styles.predictionStat}>Req. Rate: <Text style={styles.predictionValue}>{requiredRate}</Text></Text>
+                  {/* Simple win probability estimate (not ML, just a ratio) */}
+                  <Text style={styles.predictionStat}>Win %: <Text style={styles.predictionValue}>{
+                    ballsRemaining > 0 ? Math.max(0, Math.min(100, Math.round((1 - (runsNeeded / (ballsRemaining * 1.5))) * 100))) : (runsNeeded <= 0 ? 100 : 0)
+                  }</Text></Text>
+                </>
+              ) : (
+                <Text style={styles.predictionStat}>Not in chasing innings</Text>
+              )}
+            </View>
+          </View>
+
           <View style={{ height: 40 }} />
         </ScrollView>
 
@@ -884,6 +944,27 @@ export default function ScoringScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
+  liveTableCard: {
+    backgroundColor: colors.surfaceContainerLow,
+    marginHorizontal: 14,
+    marginTop: 16,
+    marginBottom: 2,
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+  },
+  liveTableTitle: { color: colors.primary, fontWeight: '700', fontSize: 15, marginBottom: 7 },
+  tableHeaderRow: { flexDirection: 'row', marginBottom: 2 },
+  tableHeader: { color: colors.textMuted, fontWeight: '700', fontSize: 12, flex: 1, textAlign: 'center' },
+  tableHeaderWide: { flex: 2, textAlign: 'left' },
+  tableRow: { flexDirection: 'row', paddingVertical: 2 },
+  tableCell: { color: colors.textPrimary, fontSize: 13, flex: 1, textAlign: 'center' },
+  predictionStat: { color: colors.textMuted, fontSize: 13, marginRight: 16, marginBottom: 2 },
+  predictionValue: { color: colors.primary, fontWeight: '700' },
   container: { flex: 1, backgroundColor: colors.background },
 
   // Gradient score panel at top
