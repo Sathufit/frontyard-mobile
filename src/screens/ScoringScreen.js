@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { subscribeToMatch, updateMatch } from '../services/matchService';
 import { computeMatchState } from '../utils/scoringEngine';
 import { colors, DISMISSAL_TYPES, DISMISSAL_LABELS } from '../utils/constants';
+import AnalyticsTab from '../components/AnalyticsTab';
 
 // ─── Helper: picker modal ─────────────────────────────────────────────────────
 function PickerModal({ visible, title, options, onSelect, onClose }) {
@@ -111,6 +112,7 @@ export default function ScoringScreen({ route, navigation }) {
   const [newBatterPickerVisible, setNewBatterPickerVisible] = useState(false);
   const [newBowlerPickerVisible, setNewBowlerPickerVisible] = useState(false);
   const [dismissalModalVisible, setDismissalModalVisible] = useState(false);
+  const [activeTab, setActiveTab] = useState('Scoring');
 
   // Pending state for after dismissal / over end
   const pendingBallRef = useRef(null);
@@ -701,6 +703,20 @@ export default function ScoringScreen({ route, navigation }) {
         </SafeAreaView>
       </LinearGradient>
 
+    {/* ── Tab Bar ────────────────────────────────────────────────────────── */}
+    <View style={styles.scoringTabBar}>
+      {['Scoring', 'Analytics'].map((tab) => (
+        <TouchableOpacity
+          key={tab}
+          style={[styles.scoringTab, activeTab === tab && styles.scoringTabActive]}
+          onPress={() => setActiveTab(tab)}
+        >
+          <Text style={[styles.scoringTabText, activeTab === tab && styles.scoringTabTextActive]}>{tab}</Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+
+    {activeTab === 'Scoring' && (
       <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
         {/* Players Panel */}
         <View style={styles.playersPanel}>
@@ -896,6 +912,14 @@ export default function ScoringScreen({ route, navigation }) {
 
           <View style={{ height: 40 }} />
         </ScrollView>
+    )}
+
+    {activeTab === 'Analytics' && (
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, gap: 14 }}>
+        <AnalyticsTab match={match} />
+        <View style={{ height: 24 }} />
+      </ScrollView>
+    )}
 
       {/* Modals */}
       <PickerModal
@@ -1056,6 +1080,34 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.border,
   },
   undoBtnText: { color: colors.textMuted, fontWeight: '600', fontSize: 14 },
+
+  // ── Tab Bar ──────────────────────────────────────────────────────────────────
+  scoringTabBar: {
+    flexDirection: 'row',
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  scoringTab: {
+    flex: 1,
+    paddingVertical: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scoringTabActive: {
+    borderBottomWidth: 3,
+    borderBottomColor: colors.primary,
+  },
+  scoringTabText: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
+  scoringTabTextActive: {
+    color: colors.primary,
+    fontWeight: '700',
+  },
 
   // Modal styles
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' },

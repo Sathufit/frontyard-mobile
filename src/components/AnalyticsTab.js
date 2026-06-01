@@ -1,17 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
-import {
-  View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Animated, Alert, StatusBar,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { subscribeToMatch } from '../services/matchService';
+import React, { useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Animated } from 'react-native';
 import { colors } from '../utils/constants';
-import AnalyticsTab from '../components/AnalyticsTab';
-import { useAuth } from '../context/AuthContext';
 
-const TABS = ['Scorecard', 'Analytics', 'Bowling', 'Ball by Ball', 'Info'];
-
-// ─── Analytics helpers ────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 function computeOverRuns(balls) {
   if (!balls.length) return [];
   const overData = [];
@@ -64,16 +55,15 @@ function computeWinProbability(match, teamSize) {
   return Math.round(Math.min(Math.max(rrrProb * wicketWeight * 100, 3), 97));
 }
 
+// ─── Sub-components ───────────────────────────────────────────────────────────
 function WinProbabilityCard({ battingTeam, bowlingTeam, probability }) {
   const probAnim = useRef(new Animated.Value(probability)).current;
-  const prevProb = useRef(probability);
   useEffect(() => {
     Animated.timing(probAnim, {
       toValue: probability,
       duration: 700,
       useNativeDriver: false,
     }).start();
-    prevProb.current = probability;
   }, [probability]);
   const fillWidth = probAnim.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] });
   const probColor = probability >= 60 ? colors.success : probability >= 40 ? colors.warning : colors.error;
@@ -144,7 +134,8 @@ function BatterBar({ batter, maxRuns }) {
   );
 }
 
-function _AnalyticsTabLegacy({ match }) {
+// ─── Main Export ──────────────────────────────────────────────────────────────
+export default function AnalyticsTab({ match }) {
   const balls = match.balls || [];
   const overRuns = computeOverRuns(balls);
   const batterStats = match.batterStats || [];
@@ -159,7 +150,7 @@ function _AnalyticsTabLegacy({ match }) {
   const [ov, bl] = oversStr.split('.').map(Number);
   const legalBalls = (ov || 0) * 6 + (bl || 0);
   const crr = legalBalls > 0 ? ((currentRuns / legalBalls) * 6).toFixed(2) : '0.00';
-  const [wktsStr] = (match.score || '0/0').split('/').reverse();
+  const [, wktsStr] = (match.score || '0/0').split('/');
   const currentWickets = parseInt(wktsStr) || 0;
   let rrr = null;
   if (winProb !== null && match.target && match.oversLimit) {
@@ -170,6 +161,7 @@ function _AnalyticsTabLegacy({ match }) {
   const topBatter = [...batterStats].sort((a, b) => b.runs - a.runs)[0] || null;
   const topBowler = [...bowlerStats].sort((a, b) => b.wickets - a.wickets || parseFloat(a.economy) - parseFloat(b.economy))[0] || null;
   const maxBatterRuns = Math.max(...batterStats.map((b) => b.runs), 1);
+
   return (
     <View style={{ gap: 14 }}>
       {winProb !== null && (
@@ -197,6 +189,7 @@ function _AnalyticsTabLegacy({ match }) {
           <Text style={aStyles.statLbl}>Wkts Left</Text>
         </View>
       </View>
+
       {overRuns.length > 0 && (
         <View style={aStyles.card}>
           <Text style={aStyles.cardTitle}>Runs Per Over</Text>
@@ -211,6 +204,7 @@ function _AnalyticsTabLegacy({ match }) {
           <OverRunsChart overRuns={overRuns} />
         </View>
       )}
+
       {(topBatter || topBowler) && (
         <View style={aStyles.card}>
           <Text style={aStyles.cardTitle}>Top Performers</Text>
@@ -247,6 +241,7 @@ function _AnalyticsTabLegacy({ match }) {
           )}
         </View>
       )}
+
       {batterStats.length > 0 && (
         <View style={aStyles.card}>
           <Text style={aStyles.cardTitle}>Batting Breakdown</Text>
@@ -257,6 +252,7 @@ function _AnalyticsTabLegacy({ match }) {
           ))}
         </View>
       )}
+
       {bowlerStats.length > 0 && (
         <View style={aStyles.card}>
           <Text style={aStyles.cardTitle}>Bowling Breakdown</Text>
@@ -264,7 +260,10 @@ function _AnalyticsTabLegacy({ match }) {
             const econNum = parseFloat(b.economy) || 0;
             const econColor = econNum <= 5 ? colors.success : econNum <= 8 ? colors.warning : colors.error;
             return (
-              <View key={b.name} style={[aStyles.bowlerRow, i > 0 && { marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border }]}>
+              <View
+                key={b.name}
+                style={[aStyles.bowlerRow, i > 0 && { marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border }]}
+              >
                 <Text style={aStyles.bowlerName}>{b.name}</Text>
                 <View style={aStyles.bowlerStats}>
                   <View style={aStyles.bowlerStat}><Text style={aStyles.bowlerStatVal}>{b.overs}</Text><Text style={aStyles.bowlerStatLbl}>Overs</Text></View>
@@ -280,308 +279,6 @@ function _AnalyticsTabLegacy({ match }) {
     </View>
   );
 }
-
-function BallCircle({ ball }) {
-  let bg = colors.textMuted;
-  let label = String(ball.runs);
-
-  if (ball.isOut) { bg = colors.error; label = 'W'; }
-  else if (ball.runs === 4) { bg = colors.success; label = '4'; }
-  else if (ball.runs === 6) { bg = colors.warning; label = '6'; }
-  else if (ball.isExtra) { bg = '#FF9800'; label = ball.extraType === 'wide' ? 'Wd' : ball.extraType === 'noBall' ? 'NB' : ball.extraType === 'bye' ? 'B' : 'LB'; }
-  else if (ball.runs === 0) { bg = colors.textMuted; label = '•'; }
-
-  return (
-    <View style={[styles.ballCircle, { backgroundColor: bg }]}>
-      <Text style={styles.ballLabel}>{label}</Text>
-    </View>
-  );
-}
-
-function BatterTable({ batterStats }) {
-  return (
-    <View>
-      <View style={[styles.tableRow, styles.tableHeader]}>
-        {['Batter', 'R', 'B', '4s', '6s', 'SR'].map((h) => (
-          <Text key={h} style={[styles.tableCell, styles.tableHeaderText, h === 'Batter' && styles.tableCellWide]}>{h}</Text>
-        ))}
-      </View>
-      {batterStats.map((b) => (
-        <View key={b.name} style={styles.tableRow}>
-          <Text style={[styles.tableCell, styles.tableCellWide, { color: b.isOut ? colors.textMuted : colors.textPrimary }]}>
-            {b.name}{!b.isOut ? '*' : ''}
-            {b.isOut ? <Text style={styles.outLabel}> {b.outType}</Text> : null}
-          </Text>
-          <Text style={styles.tableCell}>{b.runs}</Text>
-          <Text style={styles.tableCell}>{b.ballsFaced}</Text>
-          <Text style={styles.tableCell}>{b.fours}</Text>
-          <Text style={styles.tableCell}>{b.sixes}</Text>
-          <Text style={styles.tableCell}>{b.strikeRate}</Text>
-        </View>
-      ))}
-    </View>
-  );
-}
-
-function BowlerTable({ bowlerStats }) {
-  return (
-    <View>
-      <View style={[styles.tableRow, styles.tableHeader]}>
-        {['Bowler', 'O', 'R', 'W', 'Econ'].map((h) => (
-          <Text key={h} style={[styles.tableCell, styles.tableHeaderText, h === 'Bowler' && styles.tableCellWide]}>{h}</Text>
-        ))}
-      </View>
-      {bowlerStats.map((b) => (
-        <View key={b.name} style={styles.tableRow}>
-          <Text style={[styles.tableCell, styles.tableCellWide]}>{b.name}</Text>
-          <Text style={styles.tableCell}>{b.overs}</Text>
-          <Text style={styles.tableCell}>{b.runs}</Text>
-          <Text style={styles.tableCell}>{b.wickets}</Text>
-          <Text style={styles.tableCell}>{b.economy}</Text>
-        </View>
-      ))}
-    </View>
-  );
-}
-
-export default function WatchMatchScreen({ route, navigation }) {
-  const { matchId, title } = route.params;
-  const { isAdmin } = useAuth();
-  const [match, setMatch] = useState(null);
-  const [activeTab, setActiveTab] = useState('Scorecard');
-
-  useEffect(() => {
-    navigation.setOptions({ title: title || 'Live Match' });
-    const unsub = subscribeToMatch(matchId, setMatch);
-    return unsub;
-  }, [matchId]);
-
-  if (!match) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator color={colors.accent} />
-      </View>
-    );
-  }
-
-  const last12 = (match.balls || []).slice(-12);
-  const isLive = !match.matchFinished && match.status !== 'finished';
-
-  function handleResumeScoring() {
-    if (!isAdmin) {
-      Alert.alert('Login Required', 'You need to be logged in to resume scoring.');
-      return;
-    }
-    navigation.navigate('NewMatch', {
-      screen: 'Scoring',
-      params: {
-        matchId: match.id,
-        matchName: match.title,
-        matchType: match.matchType,
-        oversLimit: match.oversLimit,
-        teamA: match.teamA,
-        teamB: match.teamB,
-        teamAPlayers: match.teamAPlayers || [],
-        teamBPlayers: match.teamBPlayers || [],
-        tossWinner: match.tossWinner || '',
-        tossDecision: match.tossDecision || 'bat',
-      },
-    });
-  }
-
-  return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      {/* Score Header — dark emerald gradient */}
-      <LinearGradient colors={['#002419', '#003527', '#064e3b']} style={styles.scoreHeader}>
-        <SafeAreaView edges={['top']} style={styles.scoreHeaderInner}>
-          <Text style={styles.scoreTitle}>{match.battingCardTitle}</Text>
-          <Text style={styles.scoreBig}>{match.score}</Text>
-          <Text style={styles.scoreDetail}>{match.overs}  {match.runRate}</Text>
-          {match.leadTrail ? <Text style={styles.leadTrail}>{match.leadTrail}</Text> : null}
-        </SafeAreaView>
-      </LinearGradient>
-
-      {/* Resume Scoring — shown when match is still live */}
-      {isLive && (
-        <TouchableOpacity style={styles.resumeBtnOuter} onPress={handleResumeScoring} activeOpacity={0.88}>
-          <LinearGradient colors={['#003527', '#064e3b']} start={{x:0,y:0}} end={{x:1,y:0}} style={styles.resumeBtn}>
-            <Text style={styles.resumeBtnText}>▶ Resume Scoring</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      )}
-
-      {/* Tabs */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabBar}>
-        {TABS.map((t) => (
-          <TouchableOpacity
-            key={t}
-            style={[styles.tab, activeTab === t && styles.tabActive]}
-            onPress={() => setActiveTab(t)}
-          >
-            <Text style={[styles.tabText, activeTab === t && styles.tabTextActive]}>{t}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      <ScrollView style={styles.content} contentContainerStyle={{ padding: 16 }}>
-        {activeTab === 'Scorecard' && (
-          <View>
-            {/* For completed matches: show all archived innings */}
-            {[
-              { key: 'innings1', label: '1st Innings' },
-              { key: 'innings2', label: '2nd Innings' },
-              { key: 'innings3', label: '3rd Innings' },
-              { key: 'innings4', label: '4th Innings' },
-            ]
-              .filter(({ key }) => match[key])
-              .map(({ key, label }, i) => {
-                const inn = match[key];
-                return (
-                  <View key={key} style={i > 0 ? { marginTop: 24 } : undefined}>
-                    <Text style={styles.inningsLabel}>{label} — {inn.team}  <Text style={styles.inningsScore}>{inn.runs}/{inn.wickets} ({inn.overs} ov)</Text></Text>
-                    <Text style={[styles.sectionTitle, { marginTop: 12 }]}>Batting</Text>
-                    <BatterTable batterStats={inn.batterStats || []} />
-                    <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Bowling</Text>
-                    <BowlerTable bowlerStats={inn.bowlerStats || []} />
-                  </View>
-                );
-              })}
-
-            {/* Fallback for live in-progress (no archived innings yet) */}
-            {!match.innings1 && (
-              <View>
-                <Text style={styles.sectionTitle}>Batting — {match.battingCardTitle?.replace(' - Batting', '')}</Text>
-                <BatterTable batterStats={match.batterStats || []} />
-                <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Bowling — {match.bowlingCardTitle?.replace(' - Bowling', '')}</Text>
-                <BowlerTable bowlerStats={match.bowlerStats || []} />
-              </View>
-            )}
-
-            {/* Current live innings (when previous innings are already archived) */}
-            {match.innings1 && isLive && (
-              <View style={{ marginTop: 24 }}>
-                <Text style={styles.inningsLabel}>Current Innings — {match.battingCardTitle?.replace(' - Batting', '')}</Text>
-                <Text style={[styles.sectionTitle, { marginTop: 12 }]}>Batting</Text>
-                <BatterTable batterStats={match.batterStats || []} />
-                <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Bowling</Text>
-                <BowlerTable bowlerStats={match.bowlerStats || []} />
-              </View>
-            )}
-          </View>
-        )}
-
-        {activeTab === 'Analytics' && <AnalyticsTab match={match} />}
-
-        {activeTab === 'Bowling' && (
-          <View>
-            <Text style={styles.sectionTitle}>Bowling — {match.bowlingCardTitle?.replace(' - Bowling', '')}</Text>
-            <BowlerTable bowlerStats={match.bowlerStats || []} />
-          </View>
-        )}
-
-        {activeTab === 'Ball by Ball' && (
-          <View>
-            <Text style={styles.sectionTitle}>Last 12 Balls</Text>
-            <View style={styles.ballRow}>
-              {last12.map((ball, i) => <BallCircle key={i} ball={ball} />)}
-            </View>
-            <Text style={[styles.sectionTitle, { marginTop: 20 }]}>All Balls</Text>
-            {(match.balls || []).map((ball, i) => (
-              <View key={i} style={styles.ballLogRow}>
-                <BallCircle ball={ball} />
-                <Text style={styles.ballLogText}>
-                  {ball.batter} {ball.isOut ? `OUT (${ball.outType})` : `${ball.runs}${ball.isExtra ? ` + ${ball.extraType}` : ''}`} — {ball.bowler}
-                </Text>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {activeTab === 'Info' && (
-          <View style={{ gap: 12 }}>
-            <InfoRow label="Match Type" value={match.matchType === 'LIMITED_OVERS' ? `Limited Overs (${match.oversLimit})` : 'Test Match'} />
-            <InfoRow label="Toss" value={`${match.tossWinner} won, chose to ${match.tossDecision}`} />
-            <InfoRow label="Status" value={match.matchStatus} />
-            <InfoRow label="Result" value={match.result || 'In Progress'} />
-            <Text style={[styles.sectionTitle, { marginTop: 8 }]}>{match.teamA} Players</Text>
-            {(match.teamAPlayers || []).map((p, i) => (
-              <Text key={i} style={styles.playerItem}>{i + 1}. {p}</Text>
-            ))}
-            <Text style={[styles.sectionTitle, { marginTop: 8 }]}>{match.teamB} Players</Text>
-            {(match.teamBPlayers || []).map((p, i) => (
-              <Text key={i} style={styles.playerItem}>{i + 1}. {p}</Text>
-            ))}
-          </View>
-        )}
-      </ScrollView>
-    </View>
-  );
-}
-
-function InfoRow({ label, value }) {
-  return (
-    <View style={styles.infoRow}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  loading: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' },
-  scoreHeader: {},
-  scoreHeaderInner: {
-    paddingHorizontal: 20,
-    paddingTop: 4,
-    paddingBottom: 20,
-  },
-  scoreTitle: { color: colors.primaryFixedDim, fontSize: 11, fontWeight: '700', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 },
-  scoreBig: { color: '#ffffff', fontSize: 44, fontWeight: '800', letterSpacing: -1.5, marginTop: 2 },
-  scoreDetail: { color: 'rgba(255,255,255,0.65)', fontSize: 13, marginTop: 4 },
-  leadTrail: { color: colors.primaryFixed, fontSize: 14, marginTop: 6, fontWeight: '600' },
-  tabBar: { borderBottomWidth: 1, borderBottomColor: colors.border, flexGrow: 0, backgroundColor: colors.surface },
-  tab: { paddingHorizontal: 18, paddingVertical: 13 },
-  tabActive: { borderBottomWidth: 3, borderBottomColor: colors.primary },
-  tabText: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
-  tabTextActive: { color: colors.primary, fontWeight: '700' },
-  content: { flex: 1 },
-  sectionTitle: { color: colors.primary, fontSize: 11, fontWeight: '700', letterSpacing: 0.8, marginBottom: 12, textTransform: 'uppercase' },
-  inningsLabel: { color: colors.textPrimary, fontSize: 15, fontWeight: '700', marginBottom: 4 },
-  inningsScore: { color: colors.textSecondary, fontSize: 14, fontWeight: '600' },
-  tableRow: { flexDirection: 'row', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
-  tableHeader: { borderBottomColor: colors.borderStrong },
-  tableHeaderText: { color: colors.textMuted, fontWeight: '700', fontSize: 11, letterSpacing: 0.5 },
-  tableCell: { flex: 1, color: colors.textPrimary, fontSize: 13, textAlign: 'center' },
-  tableCellWide: { flex: 3, textAlign: 'left' },
-  outLabel: { color: colors.textMuted, fontSize: 11 },
-  ballRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  ballCircle: {
-    width: 38, height: 38, borderRadius: 19,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  ballLabel: { color: '#fff', fontWeight: '700', fontSize: 11 },
-  ballLogRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 10 },
-  ballLogText: { color: colors.textSecondary, fontSize: 13, flex: 1 },
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
-  infoLabel: { color: colors.textMuted, fontSize: 13 },
-  infoValue: { color: colors.textPrimary, fontSize: 13, fontWeight: '600', flex: 1, textAlign: 'right' },
-  playerItem: { color: colors.textSecondary, fontSize: 13, paddingVertical: 3 },
-  resumeBtnOuter: {
-    marginHorizontal: 16,
-    marginVertical: 10,
-    borderRadius: 12,
-    overflow: 'hidden',
-    shadowColor: '#003527',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  resumeBtn: { paddingVertical: 14, alignItems: 'center' },
-  resumeBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 15 },
-});
 
 const aStyles = StyleSheet.create({
   card: {
